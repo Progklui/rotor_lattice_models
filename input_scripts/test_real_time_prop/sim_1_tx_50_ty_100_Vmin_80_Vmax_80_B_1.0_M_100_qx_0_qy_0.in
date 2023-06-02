@@ -1,0 +1,12 @@
+n 256
+M 100
+Mx 10
+My 10
+B 1.0
+tx 50
+ty 100
+V_0 80
+qx 0
+qy 0
+dt 0.001
+time_steps 10
