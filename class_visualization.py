@@ -27,7 +27,7 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
             self.format = r'$\mathdefault{%s}$' % self.format
 
 class configurations:
-    def __init__(self, Mx, My, B, tx, ty, qx, qy, n, x, dt, tol, Vmin, Vmax):
+    def __init__(self, Mx, My, B, tx, ty, qx, qy, n, dt, tol, Vmin, Vmax):
         self.Mx  = Mx
         self.My  = My
         self.B   = B
@@ -36,7 +36,7 @@ class configurations:
         self.qx  = qx
         self.qy  = qy
         self.n   = n
-        self.x   = x
+        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
         self.dt  = dt
         self.tol = tol
         self.Vmin = Vmin
@@ -76,11 +76,14 @@ class configurations:
 
         in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
 
+        in_object_g = h_in.green_function(Mx=self.Mx, My=self.My, B=self.B, V_0=V_0, tx=self.tx, ty=self.ty, qx=self.qx, qy=self.qy, n=self.n, dt=self.dt, time_steps=self.tol)
+        folder_name_g, file_name_green = in_object_g.plot_result_folder_structure_real_time_prop(path_main, t_index) # get the folder structure for results
+
         folder_name = '/image_results/psi_rotors_2d_python_M_'+str(M)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
             +'_Vmin_'+str(f'{self.Vmin:.1f}')+'_Vmax_'+str(f'{self.Vmax:.1f}')+'_complete/configurations/'
         file_name   = 'psi_rotors_2d_real_time_configuration_V_0_'+str(V_0)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_scan_'\
             +scan_dir+'_time_index_'+str(t_index)+'_dt_'+str(self.dt)
-        plt.savefig(in_object.get_file_name(path_main, folder_name, file_name)+'.png', dpi=100)
+        plt.savefig(folder_name_g+file_name_green+'.png', dpi=100)
         
         plt.close()
 
@@ -208,7 +211,7 @@ class configurations:
         plt.show()
 
 class densities:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
+    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
         self.B   = B
@@ -218,7 +221,7 @@ class densities:
         self.qx  = qx
         self.qy  = qy
         self.n   = n
-        self.x   = x
+        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
         self.dt  = dt
         self.tol = tol
 
@@ -651,7 +654,7 @@ class eff_mass:
         plt.show()
 
 class polaron_size:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
+    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
         self.B   = B
@@ -661,7 +664,7 @@ class polaron_size:
         self.qx  = qx
         self.qy  = qy
         self.n   = n
-        self.x   = x
+        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
         self.dt  = dt
         self.tol = tol
 

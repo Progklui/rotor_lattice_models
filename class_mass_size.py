@@ -10,7 +10,7 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 class eff_mass:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
+    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
         self.B   = B
@@ -20,7 +20,7 @@ class eff_mass:
         self.qx  = qx
         self.qy  = qy
         self.n   = n
-        self.x   = x
+        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
         self.dt  = dt
         self.tol = tol
         self.mx_y = 'mx'
@@ -73,7 +73,7 @@ class eff_mass:
         return m_eff.real, m_0, E_col.real, E_col_qp.real
 
 class polaron_size:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
+    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
         self.B   = B
@@ -83,7 +83,7 @@ class polaron_size:
         self.qx  = qx
         self.qy  = qy
         self.n   = n
-        self.x   = x
+        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
         self.dt  = dt
         self.tol = tol
 
