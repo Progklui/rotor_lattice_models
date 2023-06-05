@@ -22,6 +22,28 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 class eom:
+''' Class for evaluation of the equations of motion for a rotor lattice ...
+
+ Here you should write an overview of inputs like this:
+
+inputs
+------
+Mx (float): length of rotor lattice in x direction
+...
+
+Important variables (mainly for ourput/debugging)
+
+variables
+---------
+self.*** (x-dimensional numpy array) description
+
+but most importantly:
+
+methods
+-------
+self.rhs_lang_firsov(three-dimensional numpy array) calculate the right hand side of the
+                                                    variational equation of motion
+'''    
     def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
@@ -38,14 +60,20 @@ class eom:
         self.real_or_image_time_unit = 1j
         self.real_or_imag_time = 1. # real time: = 0., imag time: = 1., parameter for including lagrange parameter
 
+    ## split this into two functions
+    # 1 function is hpsi_lang_firsov
+    # 2 function is rhs_lang_firsov here you call hpsi_lang_firsov and evaluate the Langrange multipliers
+    def rhs_lang_firsov(self, psi_collection):
     '''
+    Again here you should write explicity the inputs and outputs of this function and also in more detail what each dimension of each matrix is
+    
+
         This is the right-hand-side of the e.o.m. for real and imaginary time propagation:
         
         Switching between real and imag time:
             - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
             - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
     '''
-    def rhs_lang_firsov(self, psi_collection):
 
         TL_arr = np.zeros((self.My,self.Mx), dtype=complex)
         TR_arr = np.zeros((self.My,self.Mx), dtype=complex)
@@ -60,6 +88,12 @@ class eom:
             
                 TR_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,(p+1)%self.Mx])
                 TL_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,p-1])
+
+        # psi_collection_conj = np.conjugate(psi_collection)
+        # TD_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_next_y(psi_collection))
+        # TU_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_prev_y(psi_collection))
+        # TR_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_next_x(psi_collection))
+        # TL_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_prev_x(psi_collection))
         
         H_psi = np.zeros((self.My,self.Mx,self.n), dtype=complex) # create a matrix for every rotor 
 
@@ -106,6 +140,7 @@ class eom:
     '''
         function to solve for the imaginary time propagation
     '''
+    ## you need two functions that transform between the three dimensional and one-dimensional numpy representations in wavefunction manipulation things
     def solve_for_fixed_coupling_imag_time_prop(self, psi_col):
         M = int(self.My*self.Mx) # compute total number of rotors - not 'trivial' for Mx \neq My
 
@@ -125,6 +160,7 @@ class eom:
             sol = solve_ivp(func, [0,self.dt], psi_col.copy(), method='RK45', rtol=1e-9, atol=1e-9) # evolution in imaginary time # method='RK45','DOP853'
         
             psin = sol.y.T[-1]
+            # norm function you could also use einsum and the transformation functions
             psin = (1.0/np.sqrt(np.sum(np.abs(psin.reshape((M,self.n)))**2,axis=1))).reshape(M,1) * psin.reshape((M,self.n)) # normalization for numerical errors
         
             psi_col = psin.reshape((M*self.n,)).copy()
