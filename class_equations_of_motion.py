@@ -23,83 +23,118 @@ sys.path.append(path)
 
 class eom:
     ''' Class for evaluation of the equations of motion for a rotor lattice ...
-        Here you should write an overview of inputs like this:
 
-        inputs
-        ------
-        Mx (float): length of rotor lattice in x direction
-        ...
+        ----
+        Inputs:
+            params: dictionary with all calculation parameters
+        ----
 
-        Important variables (mainly for ourput/debugging)
+        Important variables (mainly for ourput/debugging):
+        
+        ----
+        Calculation parameters and class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotor lattice in x direction
+            My (int): number of rotor lattice in y direction
 
-        variables
-        ---------
-        self.*** (x-dimensional numpy array) description
+            tx (float): tunneling ratio in x direction
+            ty (float): tunneling ratio in y direction
+            V_0 (float): coupling strength of interaction term
+            B (float): rotational constant
+            qx (int): wavenumber of electron in x direction
+            qy (int): wavenumber of electron in y direction
+
+            dt (float): time step of one Runge-Kutta propagation
+            time_steps (int): number of time steps in the real time propagation
+            tol (float): convergence criterion for the ground state in the imaginary time propagation
+        ----
 
         but most importantly:
 
-        methods
-        -------
-        self.rhs_lang_firsov(three-dimensional numpy array) calculate the right hand side of the
-                                                    variational equation of motion
+        ----
+        Methods:
+            self.hpsi_lang_firsov(wavefunc. as three-dimensional numpy array): calculate H_psi
+                                                        of the variational equation of motion
+            self.rhs_lang_firsov_imag_time_prop(wavefunc. as three-dimensional numpy array):
+            self.rhs_lang_firsov_real_time_prop(wavefunc. as three-dimensional numpy array):
+        ----
     '''    
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.V_0 = V_0
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
-        self.dt  = dt
-        self.tol = tol
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
+        self.tol = params['time_steps']
         self.real_or_image_time_unit = 1j
         self.real_or_imag_time = 1. # real time: = 0., imag time: = 1., parameter for including lagrange parameter
 
     ## split this into two functions
     # 1 function is hpsi_lang_firsov
     # 2 function is rhs_lang_firsov here you call hpsi_lang_firsov and evaluate the Langrange multipliers
-    def rhs_lang_firsov(self, psi_collection):
+    def hpsi_lang_firsov(self, psi_collection):
         '''
-        Again here you should write explicity the inputs and outputs of this function and also in more detail what each dimension of each matrix is
-    
+            Computes: H_psi of the variational equations of motion
 
-            This is the right-hand-side of the e.o.m. for real and imaginary time propagation:
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Variables: 
+                TD_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for down jumping 
+                TU_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for up jumping
+
+                TR_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for right jumping
+                TL_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for left jumping
+            ----
+
+            ----
+            Outputs:
+                H_psi (2-dimensional: (My*Mx,n)): H_psi of the variational equations of motion
+            ----
+        '''
         
-            Switching between real and imag time:
-                - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
-                - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
-        '''
+        # object for manipulating wavefunctions
+        wfn_manip = h_wavef.permute_rotors(psi_collection)
 
-        TL_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        TR_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        TU_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        TD_arr = np.zeros((self.My,self.Mx), dtype=complex)
+        #TL_arr = np.zeros((self.My,self.Mx), dtype=complex)
+        #TR_arr = np.zeros((self.My,self.Mx), dtype=complex)
+        #TU_arr = np.zeros((self.My,self.Mx), dtype=complex)
+        #TD_arr = np.zeros((self.My,self.Mx), dtype=complex)
 
         # compute arrays for all the pairwise (column/row wise) overlaps
-        for k in range(self.My):
-            for p in range(self.Mx):
-                TD_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[(k+1)%self.My,p])
-                TU_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k-1,p])
-            
-                TR_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,(p+1)%self.Mx])
-                TL_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,p-1])
+        #for k in range(self.My):
+        #    for p in range(self.Mx):
+        #        TD_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[(k+1)%self.My,p])
+        #        TU_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k-1,p])
+        #    
+        #        TR_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,(p+1)%self.Mx])
+        #        TL_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,p-1])
 
-        # psi_collection_conj = np.conjugate(psi_collection)
-        # TD_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_next_y(psi_collection))
-        # TU_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_prev_y(psi_collection))
-        # TR_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_next_x(psi_collection))
-        # TL_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manipulation.get_prev_x(psi_collection))
+        psi_collection_conj = np.conjugate(psi_collection)
+
+        # compute transfer integrals 
+        TD_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex), -1, axis=0)
+        TU_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex), 1, axis=0)
+        TR_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex), -1, axis=1)
+        TL_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex), 1, axis=1)
         
-        H_psi = np.zeros((self.My,self.Mx,self.n), dtype=complex) # create a matrix for every rotor 
-
         TD = np.prod(TD_arr)
         TU = np.prod(TU_arr)
         TR = np.prod(TR_arr)
         TL = np.prod(TL_arr)
+
+        H_psi = np.zeros((self.My,self.Mx,self.n), dtype=complex) # create a matrix for every rotor 
 
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
         for i in range(self.My):
@@ -124,65 +159,192 @@ class eom:
         H_psi[self.My-1,self.Mx-1] += self.V_0*np.cos(self.x-0.75*np.pi)*psi_collection[self.My-1,self.Mx-1]
         H_psi[0,0]                 += self.V_0*np.cos(self.x+0.25*np.pi)*psi_collection[0,0]
         H_psi[0,self.Mx-1]         += self.V_0*np.cos(self.x+0.75*np.pi)*psi_collection[0,self.Mx-1]
+
+        H_psi = H_psi.reshape((self.M,self.n))
+        return H_psi
+
+    def rhs_lang_firsov_imag_time_prop(self, psi_collection):
+        '''
+            Computes: right-hand-side of the variational e.o.m. for imaginary time propagation
+
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Variables: 
+                H_psi (2-dimensional: (My*Mx,n)): right-hand-side of the variational equations of motion
+                lagrange_param (2-dimensional: (My*Mx,n)): lagrange parameter to ensure normalization
+            ----
+
+            ----
+            Outputs:
+                H_psi (1-dimensional: (My*Mx*n)): right-hand-side of the variational equations of motion for imag time evolution
+            ----
+
+            
+            Switching between real and imag time:
+                - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
+                - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
+        '''
+        H_psi = self.hpsi_lang_firsov(psi_collection)
+
+        psi_collection = psi_collection.reshape((self.M,self.n))
+        lagrange_param = np.sum(np.conjugate(psi_collection)*H_psi,axis=1).reshape(self.M,1)*psi_collection
+        
+        H_psi = H_psi - lagrange_param
+        H_psi = H_psi.reshape((self.M*self.n,))
+
+        return H_psi
+
+    def rhs_lang_firsov_real_time_prop(self, psi_collection):
+        '''
+            Computes: right-hand-side of the variational e.o.m. for real time propagation
+
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Variables: 
+                H_psi (2-dimensional: (My*Mx,n)): right-hand-side of the variational equations of motion
+            ----
+
+            ----
+            Outputs:
+                H_psi (1-dimensional: (My*Mx*n)): right-hand-side of the variational equations of motion for imag time evolution
+            ----
+        '''
+        H_psi = self.hpsi_lang_firsov(psi_collection)
+        H_psi = H_psi.reshape((self.M*self.n,))
+
+        return H_psi
     
-        M = int(self.My*self.Mx)
+    def create_integration_function_imag_time_prop(self): 
+        '''
+            Computes: lambda expression for imaginary time propagation
 
-        # Here we make the switch from real time to imaginary time evolution
-        H_psi = H_psi.reshape((M,self.n)) - self.real_or_imag_time*np.sum(np.conjugate(psi_collection.reshape((M,self.n)))\
-            *H_psi.reshape((M,self.n)),axis=1).reshape(M,1)*psi_collection.reshape((M,self.n)) 
-        return H_psi.reshape((M*self.n,))
+            ----
+            Inputs:
+                None
+            ----
 
-    # create lambda expression - Attention: prefactor determines time evolution!
-    def create_integration_function(self): 
-        return lambda t_, psi_ : -1.0*self.real_or_image_time_unit*self.rhs_lang_firsov(psi_.reshape((self.My,self.Mx,self.n)))
+            ----
+            Outputs:
+                Lambda expression for scipy ivp solver
+            ----
+        '''
+    
+        return lambda t_, psi_ : -1.0*self.rhs_lang_firsov_imag_time_prop(psi_.reshape((self.My,self.Mx,self.n)))
+
+    def create_integration_function_real_time_prop(self): 
+        '''
+            Computes: lambda expression for real time propagation
+
+            ----
+            Inputs:
+                None
+            ----
+
+            ----
+            Outputs:
+                Lambda expression for scipy ivp solver
+            ----
+        '''
+
+        return lambda t_, psi_ : 1j*self.rhs_lang_firsov_real_time_prop(psi_.reshape((self.My,self.Mx,self.n)))
 
     '''
         function to solve for the imaginary time propagation
     '''
     ## you need two functions that transform between the three dimensional and one-dimensional numpy representations in wavefunction manipulation things
-    def solve_for_fixed_coupling_imag_time_prop(self, psi_col):
-        M = int(self.My*self.Mx) # compute total number of rotors - not 'trivial' for Mx \neq My
+    def solve_for_fixed_params_imag_time_prop(self, psi_init):
+        '''
+            Computes: finds ground state variational wave function for the defined parameters
 
-        # definitions for the time evolution
-        self.real_or_image_time_unit = 1. # the sign as defined in self.create_integration_function is okay this way - don't change something
-        self.real_or_imag_time = 1. # we want imag time propagation
-        func = self.create_integration_function() # get lambda expression of right-hand-side of e.o.m
+            ----
+            Inputs:
+                psi_init (3-dimensional: (My,Mx,n)): initial wavefunction 
+            ----
 
-        psi_iter_before = psi_col # updated to calculate the overlap between consecutive steps
+            ----
+            Outputs:
+                psi_out (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+
+            ----
+            Logic:
+                (1) evolve psi_init through time dt -> psi_iter
+                (2) reshape psi_iter and normalize it
+                (3) compute overlap with previous variational state, i.e. with psi_iter
+                (4) check whether epsilon criterion is converged
+                (5) update psi_init and repeat (1) to (4)
+            ----
+        '''
+        wfn_manip = h_wavef.wavefunctions(params=self.param_dict)
+
+        # lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_imag_time_prop()
+
+        #psi_iter_before = psi_init # updated to calculate the overlap between consecutive steps
 
         iter = 0
         epsilon = 1 # initialize epsilon
-        # code logic: take evolve psi_col through dt, then check whether it has converged, update psi_col and then evolve again through time dt
+        # code logic: 
         while epsilon > self.tol:
             print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
         
-            sol = solve_ivp(func, [0,self.dt], psi_col.copy(), method='RK45', rtol=1e-9, atol=1e-9) # evolution in imaginary time # method='RK45','DOP853'
-        
-            psin = sol.y.T[-1]
+            sol = solve_ivp(func, [0,self.dt], psi_init.copy(), method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
+
             # norm function you could also use einsum and the transformation functions
-            psin = (1.0/np.sqrt(np.sum(np.abs(psin.reshape((M,self.n)))**2,axis=1))).reshape(M,1) * psin.reshape((M,self.n)) # normalization for numerical errors
+            psi_iter = sol.y.T[-1]
+            #psi_iter = psi_iter.reshape((self.M,self.n))
+            psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n)) #(1.0/np.sqrt(np.sum(np.abs(psi_iter)**2,axis=1))).reshape(self.M,1) * psi_iter # normalization for numerical errors
         
-            psi_col = psin.reshape((M*self.n,)).copy()
+            #psi_col = psin.reshape((M*self.n,)).copy()
 
             #epsilon = 4 - np.sum(np.conjugate(psi_iter_before.reshape((M*n)))*psi_col) # indication of convergence
             #epsilon = 1 - np.max(np.sum(np.conjugate(psi_iter_before.reshape((M,n)))*psin, axis=1)) # indication of convergence
-            epsilon = 1 - np.abs(np.min(np.sum(np.conjugate(psi_iter_before.reshape((M,self.n)))*psin, axis=1))) # indication of convergence
+            epsilon = 1 - np.abs(np.min(np.sum(np.conjugate(psi_init.reshape((self.M,self.n)))*psi_iter, axis=1))) # indication of convergence
         
             print("epsilon =", epsilon, "\n")
-            psi_iter_before = psin.copy() # update to calculate next overlap needed for the evaluation of epsilon
+            psi_init = psi_iter # update to calculate next overlap needed for the evaluation of epsilon
 
             iter = iter + 1 # to know in which step one is
 
-        return psi_col.copy() # return (M*n) array containing the wavefunction for the specified parameters
+        return psi_init.copy() # return (M*n) array containing the wavefunction for the specified parameters
     
     '''
         function to solve for the real time propagation
     '''
-    def solve_for_fixed_coupling_real_time_prop(self, path_main, time_steps):
+    def solve_for_fixed_params_real_time_prop(self, psi_init, path_main):
+        '''
+            Computes: real time evolution of variational wave function for the defined parameters
+
+            ----
+            Inputs:
+                psi_init (3-dimensional: (My,Mx,n)): initial wavefunction - typically uniform
+                path_main (string): path to the folder of original .py file
+            ----
+
+            ----
+            Outputs:
+                None - everything is saved already here
+            ----
+
+            ----
+            Logic:
+                (1) evolve psi_iter_before through time dt 
+                (2) 
+                then check whether it has converged
+                update psi_col and then evolve again through time dt
+            ----
+        '''
 
         # input object for storing the results
-        in_object = h_in.green_function(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty, 
-                                        qx=self.qx, qy=self.qy, n=self.n, dt=self.dt, time_steps=time_steps)
+        in_object = h_in.green_function(params=self.param_dict)
         folder_name_g, file_name_green = in_object.result_folder_structure_real_time_prop(path_main) # get the folder structure for results
         folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_real_time_prop(path_main) # get the folder structure for wavefunctions
 
@@ -192,16 +354,8 @@ class eom:
         overlap_object = energy.coupling_of_states(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty,
                                     n=self.n, x=self.x, dt=self.dt, tol=self.tol) # needed for overlap calculations
 
-        # definitions for the time evolution
-        self.real_or_image_time_unit = -1j # now we want to have the imaginary part in the time evolution!
-        self.real_or_imag_time = 0. # we want imag time propagation
-        func = self.create_integration_function() # get lambda expression of right-hand-side of e.o.m
-
-        # create uniform initial wavefunction
-        wavefunc_object = h_wavef.wavefunctions(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty, 
-                                                qx=self.qx, qy=self.qy, n=self.n, x=self.x, dt=self.dt, tol=self.tol)
-        psi_0 = wavefunc_object.create_init_wavefunction('uniform') # store the initial configuration (uniform) to compute the overlap at every time step
-        psi_curr = psi_0.copy()
+        # get lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_real_time_prop() 
 
         '''
             Code logic: 
@@ -210,8 +364,9 @@ class eom:
                 (3) evolve the updated psi_col further 
                 - repeat (1) to (3)
         ''' 
+        psi_curr = psi_init
         iter = 0 # time step variable
-        for iter in range(time_steps):
+        for iter in range(self.param_dict['time_steps']):
             print('V_0 =', self.V_0, ', time step = ' + str(iter+1))
 
             # evolution in imaginary time # method='RK45','DOP853'
@@ -220,7 +375,7 @@ class eom:
             psi_curr = sol.y.T[-1] # don't normalize result
             #psin = (1.0/np.sqrt(np.sum(np.abs(psin.reshape((M,self.n)))**2,axis=1))).reshape(M,1) * psin.reshape((M,self.n)) # normalization for numerical errors
         
-            green_function = overlap_object.calc_overlap(psi_curr, psi_0) 
+            green_function = overlap_object.calc_overlap(psi_curr, psi_init) 
             E = np.asarray(energy_object.calc_energy(psi_curr)) # compute energy
 
             print("Green   =", green_function)

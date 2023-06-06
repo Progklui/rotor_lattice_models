@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 
-import os, sys, csv
+import os, sys, csv, json
 
 path = os.path.dirname(__file__) 
 sys.path.append(path)
@@ -108,31 +108,23 @@ class params:
             else: exit()
 
     def get_parameters_real_time_prop(self, path_main, arg):
-        #path_main = os.path.dirname(os.path.abspath(__file__))+"/"
-        file_path = self.get_file_path(arg)
-        print('Current settings:'); print(' ')
-        with open(path_main+file_path, newline='') as csvfile:
-            spamreader = csv.reader(csvfile, delimiter=' ')
-            for row in spamreader:
-                identifier = row[0]
-                value = row[1].replace(" ", "")
-                if identifier == "n": n = int(value); print('n    =', n) # grid size of the angle
-                elif identifier == "M": M = int(value); print('M    =', M); Mx=int(M**0.5); My=int(M**0.5) # number of rotors - in 2D should be a square of an (even) number
-                elif identifier == "Mx": Mx = int(value); print('Mx   =', Mx) # number of rotors - in 2D should be a square of an (even) number
-                elif identifier == "My": My = int(value); print('My   =', My); print(' ') # number of rotors - in 2D should be a square of an (even) number
-                elif identifier == "B": B = float(value); print('B    =', B) # rotational energy of rotors
-                elif identifier == "tx": tx = float(value); print('tx   =', tx) # tunneling along columns
-                elif identifier == "ty": ty = float(value); print('ty   =', ty) # tunneling along rows
-                elif identifier == "V_0": V_0 = float(value); print('V_0 =', V_0); print(' ')
-                elif identifier == "qx": qx = float(value); print('qx   =', qx) # column momentum of electron
-                elif identifier == "qy": qy = float(value); print('qy   =', qy); print(' ') # row momentum of electron
-                elif identifier == "dt": dt = float(value); print('dt   =', dt);  # time step length
-                elif identifier == "time_steps": time_steps = int(value); print('time steps =', time_steps); print(' ') # number of time steps
+        print('Current settings:\n')
 
-        if self.on_cluster == True: return n, M, Mx, My, B, tx, ty, V_0, qx, qy, time_steps, dt
+        # read the dictionary file
+        file_path = self.get_file_path(arg)
+        with open(path_main+file_path) as file:
+            data = file.read()
+        param_dict = json.loads(data)
+
+        # print the parameters
+        for key, value in param_dict.items(): 
+            print(key,'=',value)
+
+        # return the dictionary
+        if self.on_cluster == True: return param_dict
         else:
-            accept = input('Accept (y/n)? ')
-            if accept == 'y': return n, M, Mx, My, B, tx, ty, V_0, qx, qy, time_steps, dt
+            accept = input('\nAccept (y/n)? ')
+            if accept == 'y': return param_dict
             else: exit()
 
     def get_parameters_coupling_of_states(self, path_main, arg):
@@ -159,18 +151,21 @@ class params:
             else: exit()
 
 class green_function:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, time_steps):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.V_0 = V_0
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.dt  = dt
-        self.time_steps = time_steps
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
+        self.time_steps = int(params['time_steps'])
 
     def wavefunction_folder_structure_real_time_prop(self, path_main):
         folder_name = path_main+'/matrix_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)+'_V0_'+str(self.V_0)+'/'

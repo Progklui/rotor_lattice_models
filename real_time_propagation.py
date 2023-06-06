@@ -20,11 +20,12 @@ sys.path.append(path)
 # import user-defined classes 
 import class_equations_of_motion as eom 
 import class_handle_input as h_in
+import class_handle_wavefunctions as h_wavef
 
-in_object = h_in.params(on_cluster=True) # object for handling inputs from command line
+in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
 
 # MAIN PART
-n, M, Mx, My, B, tx, ty, V_0, qx, qy, time_steps, dt = in_object.get_parameters_real_time_prop(path+'/', arg=1)
+params = in_object.get_parameters_real_time_prop(path+'/', arg=1)
 
 ''' 
 run the calculation protocoll: brief description:
@@ -35,10 +36,14 @@ run the calculation protocoll: brief description:
     5. Repeat steps 3. and 4. 
 ''' 
 
+# create uniform initial wavefunction
+wavefunc_object = h_wavef.wavefunctions(params=params)
+psi_init = wavefunc_object.create_init_wavefunction('uniform') 
+
 tic = time.perf_counter() # start timer
 
-eom_object = eom.eom(Mx=Mx, My=My, B=B, V_0=V_0, tx=tx, ty=ty, qx=qx, qy=qy, n=n, dt=dt, tol=1e-12) # equations of motion object
-eom_object.solve_for_fixed_coupling_real_time_prop(path, time_steps) # all objects for the calculation are calculated there!
+eom_object = eom.eom(params=params) # equations of motion object
+eom_object.solve_for_fixed_params_real_time_prop(psi_init, path) # all objects for the calculation are calculated there!
 
 toc = time.perf_counter() # end timer
 print("\nExecution time = ", (toc-tic)/60, "min")

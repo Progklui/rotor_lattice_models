@@ -8,19 +8,20 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 class wavefunctions:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.V_0 = V_0
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.x   = x
-        self.dt  = dt
-        self.tol = tol
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
 
     def create_init_wavefunction(self, phase):
         # psi_init is expected in the format Mx*My*n
@@ -103,3 +104,40 @@ class wavefunctions:
         normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi_init.reshape((int(self.Mx*self.My),self.n)))**2,axis=1))).reshape(int(self.Mx*self.My),1)
         psi = normalization_factor*psi_init.reshape((int(self.Mx*self.My),self.n))
         return psi.reshape((int(self.Mx*self.My)*self.n)) # reshaping the array
+    
+    def normalize_wf(self, psi, shape):
+        '''
+            ----
+            Inputs:
+                psi (shape doesn't matter: max. 3-dimensional): wavefunction to normalize
+            ----
+
+            ----
+            Outputs:
+                psi (shape as specified by input shape=(,,))
+            ----
+        '''
+        normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi.reshape((int(self.Mx*self.My),self.n)))**2,axis=1))).reshape(int(self.Mx*self.My),1)
+        psi = normalization_factor*psi.reshape(shape)
+        return psi
+    
+    '''
+        TODo: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
+    '''
+    
+class permute_rotors:
+    def __init__(self, psi):
+        self.psi = psi
+
+    def get_next_y_rotor(self):
+        return np.roll(self.psi, 1, axis=0)
+    
+    def get_prev_y_rotor(self):
+        return np.roll(self.psi, -1, axis=0)
+    
+    def get_next_x_rotor(self):
+        return np.roll(self.psi, 1, axis=1)
+    
+    def get_prev_x_rotor(self):
+        return np.roll(self.psi, -1, axis=1)
+        
