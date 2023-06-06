@@ -22,28 +22,27 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 class eom:
-''' Class for evaluation of the equations of motion for a rotor lattice ...
+    ''' Class for evaluation of the equations of motion for a rotor lattice ...
+        Here you should write an overview of inputs like this:
 
- Here you should write an overview of inputs like this:
+        inputs
+        ------
+        Mx (float): length of rotor lattice in x direction
+        ...
 
-inputs
-------
-Mx (float): length of rotor lattice in x direction
-...
+        Important variables (mainly for ourput/debugging)
 
-Important variables (mainly for ourput/debugging)
+        variables
+        ---------
+        self.*** (x-dimensional numpy array) description
 
-variables
----------
-self.*** (x-dimensional numpy array) description
+        but most importantly:
 
-but most importantly:
-
-methods
--------
-self.rhs_lang_firsov(three-dimensional numpy array) calculate the right hand side of the
+        methods
+        -------
+        self.rhs_lang_firsov(three-dimensional numpy array) calculate the right hand side of the
                                                     variational equation of motion
-'''    
+    '''    
     def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
         self.Mx  = Mx
         self.My  = My
@@ -64,16 +63,16 @@ self.rhs_lang_firsov(three-dimensional numpy array) calculate the right hand sid
     # 1 function is hpsi_lang_firsov
     # 2 function is rhs_lang_firsov here you call hpsi_lang_firsov and evaluate the Langrange multipliers
     def rhs_lang_firsov(self, psi_collection):
-    '''
-    Again here you should write explicity the inputs and outputs of this function and also in more detail what each dimension of each matrix is
+        '''
+        Again here you should write explicity the inputs and outputs of this function and also in more detail what each dimension of each matrix is
     
 
-        This is the right-hand-side of the e.o.m. for real and imaginary time propagation:
+            This is the right-hand-side of the e.o.m. for real and imaginary time propagation:
         
-        Switching between real and imag time:
-            - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
-            - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
-    '''
+            Switching between real and imag time:
+                - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
+                - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
+        '''
 
         TL_arr = np.zeros((self.My,self.Mx), dtype=complex)
         TR_arr = np.zeros((self.My,self.Mx), dtype=complex)
