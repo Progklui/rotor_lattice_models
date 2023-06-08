@@ -28,7 +28,7 @@ in_object = h_in.params(on_cluster=False) # object for handling inputs from comm
 params = in_object.get_parameters_real_time_prop(path+'/', arg=1)
 
 ''' 
-run the calculation protocoll: brief description:
+Calculation protocoll: brief description:
     1. Create diverse objects for computing green function and energy
     2. Create uniform initialization of the wavefunction
     3. Propagate wavefunction for dt, compute Green and Energy
@@ -43,6 +43,7 @@ psi_init = wavefunc_object.create_init_wavefunction('uniform')
 tic = time.perf_counter() # start timer
 
 eom_object = eom.eom(params=params) # equations of motion object
+eom_object.V_0 = float(params['V_0'])
 eom_object.solve_for_fixed_params_real_time_prop(psi_init, path) # all objects for the calculation are calculated there!
 
 toc = time.perf_counter() # end timer

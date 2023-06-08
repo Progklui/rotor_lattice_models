@@ -124,6 +124,28 @@ class params:
         if self.on_cluster == True: return param_dict
         else:
             accept = input('\nAccept (y/n)? ')
+            print(' ')
+            if accept == 'y': return param_dict
+            else: exit()
+
+    def get_parameters_imag_time_prop(self, path_main, arg):
+        print('Current settings:\n')
+
+        # read the dictionary file
+        file_path = self.get_file_path(arg)
+        with open(path_main+file_path) as file:
+            data = file.read()
+        param_dict = json.loads(data)
+
+        # print the parameters
+        for key, value in param_dict.items(): 
+            print(key,'=',value)
+
+        # return the dictionary
+        if self.on_cluster == True: return param_dict
+        else:
+            accept = input('\nAccept (y/n)? ')
+            print(' ')
             if accept == 'y': return param_dict
             else: exit()
 

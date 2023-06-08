@@ -14,7 +14,7 @@ class wavefunctions:
         self.My  = int(params['My'])
         self.M   = int(params['Mx']*params['My'])
         self.B   = float(params['B'])
-        self.V_0 = float(params['V_0'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
         self.tx  = float(params['tx'])
         self.ty  = float(params['ty'])
         self.qx  = int(params['qx'])
@@ -104,6 +104,55 @@ class wavefunctions:
         normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi_init.reshape((int(self.Mx*self.My),self.n)))**2,axis=1))).reshape(int(self.Mx*self.My),1)
         psi = normalization_factor*psi_init.reshape((int(self.Mx*self.My),self.n))
         return psi.reshape((int(self.Mx*self.My)*self.n)) # reshaping the array
+
+class wavefunc_operations:
+    ''' Class for elementary wavefunc operations
+        ----
+        
+        ----
+        Inputs: 
+            params: dictionary that contains the class variables
+        ----
+
+        ----
+        Class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotors in x direction
+            My (int): number of rotors in y direction
+            M (int): Mx*My, total number of rotor
+        ----
+
+        ----
+        Methods:
+            self.normalization_factor_wf(psi): computes 1/norm = normalization factor for every individual rotor
+            self.normalize_wf(psi, shape): outputs a w.f. in which every individual rotor is normalized
+        ----
+    '''    
+
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.n   = int(params['n'])
+
+    def normalization_factor_wf(self, psi):
+        '''
+            ----
+            Inputs:
+                psi (shape doesn't matter: max. 3-dimensional):
+            ----
+
+            ----
+            Outputs:
+                normalization factor (shape: (Mx*My,1)): gives the normalization factor for every rotor
+            ----
+        '''
+        psi = psi.reshape((int(self.Mx*self.My),self.n))
+
+        norm = np.sqrt(np.sum(np.abs(psi)**2,axis=1)).reshape(self.M,1)
+        normalization_factor = 1.0/norm #.reshape(int(self.Mx*self.My))
+        return normalization_factor
     
     def normalize_wf(self, psi, shape):
         '''
@@ -114,10 +163,10 @@ class wavefunctions:
 
             ----
             Outputs:
-                psi (shape as specified by input shape=(,,))
+                psi (shape as specified by input shape=(,,)): normalized wavefunction
             ----
         '''
-        normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi.reshape((int(self.Mx*self.My),self.n)))**2,axis=1))).reshape(int(self.Mx*self.My),1)
+        normalization_factor = self.normalization_factor_wf(psi)
         psi = normalization_factor*psi.reshape(shape)
         return psi
     

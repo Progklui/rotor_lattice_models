@@ -3,23 +3,13 @@ from scipy.integrate import solve_ivp
 
 import os, sys
 
-'''
-    - Goal of the code: solve the equations of motion and provide respective outputs
-    - Called: either by real_time_propagation.py or imag_time_propagation.py
-
-    - Philosophy: 
-        - one function for providing the right hand side (rhs) of the equations of motion (e.o.m)
-        - one function for creating a lambda expression of the rhs
-        - two functions for performing the real or imaginary time evolutions
-'''
+path = os.path.dirname(__file__) 
+sys.path.append(path)
 
 # import user-defined classes
 import class_energy as energy
 import class_handle_input as h_in
 import class_handle_wavefunctions as h_wavef
-
-path = os.path.dirname(__file__) 
-sys.path.append(path)
 
 class eom:
     ''' Class for evaluation of the equations of motion for a rotor lattice ...
@@ -59,13 +49,14 @@ class eom:
             self.rhs_lang_firsov_real_time_prop(wavefunc. as three-dimensional numpy array):
         ----
     '''    
+
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])
         self.My  = int(params['My'])
         self.M   = int(params['Mx']*params['My'])
         self.B   = float(params['B'])
-        self.V_0 = float(params['V_0'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
         self.tx  = float(params['tx'])
         self.ty  = float(params['ty'])
         self.qx  = int(params['qx'])
@@ -73,13 +64,7 @@ class eom:
         self.n   = int(params['n'])
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
         self.dt  = float(params['dt'])
-        self.tol = params['time_steps']
-        self.real_or_image_time_unit = 1j
-        self.real_or_imag_time = 1. # real time: = 0., imag time: = 1., parameter for including lagrange parameter
 
-    ## split this into two functions
-    # 1 function is hpsi_lang_firsov
-    # 2 function is rhs_lang_firsov here you call hpsi_lang_firsov and evaluate the Langrange multipliers
     def hpsi_lang_firsov(self, psi_collection):
         '''
             Computes: H_psi of the variational equations of motion
@@ -182,11 +167,6 @@ class eom:
             Outputs:
                 H_psi (1-dimensional: (My*Mx*n)): right-hand-side of the variational equations of motion for imag time evolution
             ----
-
-            
-            Switching between real and imag time:
-                - real-time propagation: real_or_imag_time = 0., the right hand side of the equation doesn't have the lagrange multiplier that constrains the wavefunction
-                - image-time propagation: real_or_imag_time = 1., we need the lagrange multipliers
         '''
         H_psi = self.hpsi_lang_firsov(psi_collection)
 
@@ -256,9 +236,6 @@ class eom:
 
         return lambda t_, psi_ : 1j*self.rhs_lang_firsov_real_time_prop(psi_.reshape((self.My,self.Mx,self.n)))
 
-    '''
-        function to solve for the imaginary time propagation
-    '''
     ## you need two functions that transform between the three dimensional and one-dimensional numpy representations in wavefunction manipulation things
     def solve_for_fixed_params_imag_time_prop(self, psi_init):
         '''
@@ -278,47 +255,39 @@ class eom:
             Logic:
                 (1) evolve psi_init through time dt -> psi_iter
                 (2) reshape psi_iter and normalize it
-                (3) compute overlap with previous variational state, i.e. with psi_iter
+                (3) compute overlap with previous variational state, i.e. with psi_init
                 (4) check whether epsilon criterion is converged
                 (5) update psi_init and repeat (1) to (4)
             ----
         '''
-        wfn_manip = h_wavef.wavefunctions(params=self.param_dict)
-
-        # lambda expression of right-hand-side of e.o.m
-        func = self.create_integration_function_imag_time_prop()
-
-        #psi_iter_before = psi_init # updated to calculate the overlap between consecutive steps
+        wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+        func = self.create_integration_function_imag_time_prop() # lambda expression of right-hand-side of e.o.m
 
         iter = 0
-        epsilon = 1 # initialize epsilon
-        # code logic: 
-        while epsilon > self.tol:
+        epsilon = 1 
+        tol = self.param_dict['tol']
+        while epsilon > tol:
             print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
         
             sol = solve_ivp(func, [0,self.dt], psi_init.copy(), method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
 
             # norm function you could also use einsum and the transformation functions
             psi_iter = sol.y.T[-1]
-            #psi_iter = psi_iter.reshape((self.M,self.n))
             psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n)) #(1.0/np.sqrt(np.sum(np.abs(psi_iter)**2,axis=1))).reshape(self.M,1) * psi_iter # normalization for numerical errors
-        
-            #psi_col = psin.reshape((M*self.n,)).copy()
 
             #epsilon = 4 - np.sum(np.conjugate(psi_iter_before.reshape((M*n)))*psi_col) # indication of convergence
             #epsilon = 1 - np.max(np.sum(np.conjugate(psi_iter_before.reshape((M,n)))*psin, axis=1)) # indication of convergence
             epsilon = 1 - np.abs(np.min(np.sum(np.conjugate(psi_init.reshape((self.M,self.n)))*psi_iter, axis=1))) # indication of convergence
         
             print("epsilon =", epsilon, "\n")
-            psi_init = psi_iter # update to calculate next overlap needed for the evaluation of epsilon
+            psi_init = psi_iter.reshape((self.M*self.n)) # update psi_init
 
-            iter = iter + 1 # to know in which step one is
+            iter = iter + 1
 
-        return psi_init.copy() # return (M*n) array containing the wavefunction for the specified parameters
+        psi_out = psi_init
+        return psi_out
     
-    '''
-        function to solve for the real time propagation
-    '''
+
     def solve_for_fixed_params_real_time_prop(self, psi_init, path_main):
         '''
             Computes: real time evolution of variational wave function for the defined parameters
@@ -336,10 +305,11 @@ class eom:
 
             ----
             Logic:
-                (1) evolve psi_iter_before through time dt 
-                (2) 
-                then check whether it has converged
-                update psi_col and then evolve again through time dt
+                (1) evolve psi_curr through time dt 
+                (2) compute overlap of psi_curr with psi_init
+                (3) compute normalization
+                (4) compute energy of psi_curr
+                (5) repeat (1) to (4)
             ----
         '''
 
@@ -348,38 +318,34 @@ class eom:
         folder_name_g, file_name_green = in_object.result_folder_structure_real_time_prop(path_main) # get the folder structure for results
         folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_real_time_prop(path_main) # get the folder structure for wavefunctions
 
+        wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+
         # energy objects
         energy_object = energy.energy(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty,
                                     qx=self.qx, qy=self.qy, n=self.n, x=self.x, dt=self.dt, tol=self.tol) 
         overlap_object = energy.coupling_of_states(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty,
                                     n=self.n, x=self.x, dt=self.dt, tol=self.tol) # needed for overlap calculations
-
-        # get lambda expression of right-hand-side of e.o.m
+        
+        # lambda expression for right-hand-side of e.o.m
         func = self.create_integration_function_real_time_prop() 
 
-        '''
-            Code logic: 
-                (1) evolve psi_col until dt
-                (2) compute green function, i.e. overlap with uniform psi
-                (3) evolve the updated psi_col further 
-                - repeat (1) to (3)
-        ''' 
         psi_curr = psi_init
         iter = 0 # time step variable
-        for iter in range(self.param_dict['time_steps']):
-            print('V_0 =', self.V_0, ', time step = ' + str(iter+1))
+        max_iter = self.param_dict['time_steps']
+        for iter in range(max_iter):
+            print('V_0 =', self.V_0, ', time step = ' + str(iter+1), ' of', max_iter)
 
             # evolution in imaginary time # method='RK45','DOP853'
             sol = solve_ivp(func, [0,self.dt], psi_curr, method='RK45', rtol=1e-9, atol=1e-9) 
-        
-            psi_curr = sol.y.T[-1] # don't normalize result
-            #psin = (1.0/np.sqrt(np.sum(np.abs(psin.reshape((M,self.n)))**2,axis=1))).reshape(M,1) * psin.reshape((M,self.n)) # normalization for numerical errors
-        
+            psi_curr = sol.y.T[-1] # don't normalize result!?
+            
+            norm = np.sum(1./wfn_manip.normalization_factor_wf(psi_curr))/self.M
             green_function = overlap_object.calc_overlap(psi_curr, psi_init) 
-            E = np.asarray(energy_object.calc_energy(psi_curr)) # compute energy
+            E = np.asarray(energy_object.calc_energy(psi_curr))
 
             print("Green   =", green_function)
-            print("Energy  =", E, "\n")
+            print("Energy  =", E)
+            print("Norm    =", norm, "\n")
 
             # save the green function and energy values
             np.save(folder_name_w+file_name_wavefunction+str(iter), psi_curr.reshape(self.My,self.Mx,self.n)) # save wavefunction
@@ -387,4 +353,4 @@ class eom:
                 write_string = str(green_function)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
                 green_f_file.write(write_string)
 
-        return # no return, as everything is already saved here
+        return 
