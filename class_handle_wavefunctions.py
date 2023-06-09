@@ -1,13 +1,33 @@
 import numpy as np
-from scipy.integrate import solve_ivp
 import scipy 
 
 import os, sys
-
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
 class wavefunctions:
+    ''' Class for wavefunction creation
+        ----
+        
+        ----
+        Inputs: 
+            params: dictionary that contains the class variables
+        ----
+
+        ----
+        Class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotors in x direction
+            My (int): number of rotors in y direction
+            M (int): Mx*My, total number of rotor
+        ----
+
+        ----
+        Methods:
+            self.create_init_wavefunction(phase): computes "approximate" psi (My,Mx,n) with symmetry specified by input variable 'phase'
+        ----
+    '''
+
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])
@@ -20,13 +40,38 @@ class wavefunctions:
         self.qx  = int(params['qx'])
         self.qy  = int(params['qy'])
         self.n   = int(params['n'])
+        '''
+            Todo: make external functional that creates the angle grid - such that this can be changed externally somehow!
+        '''
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
-        self.dt  = float(params['dt'])
 
     def create_init_wavefunction(self, phase):
+        '''
+            Computes: initial wavefunctions, mainly for imag time propagation
+
+            ----
+            Inputs:
+                phase (string): specified in input file, options:
+                    - phase == 'uniform': Y_11
+                    - phase == 'ferro_domain_vertical_wall': polarized domain wall states, vertically
+                    - phase == 'ferro_domain_horizontal_wall': polarized domain wall states, horizontally
+                    - phase == 'random': continous random wavefunctions
+                    - phase == 'small_polaron': analytic Mathieu function
+            ----
+
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): array which functions are to be defined here
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction with the initialized symmetry
+            ----
+        '''
         # psi_init is expected in the format Mx*My*n
         psi_init = self.n**(-0.5)*np.ones((int(self.Mx*self.My)*self.n),dtype=complex)
-        psi_init = psi_init.reshape((self.My,self.Mx,self.n)).copy()
+        psi_init = psi_init.reshape((self.My,self.Mx,self.n))
 
         if phase == 'uniform':
             psi_init = self.n**(-0.5)*np.ones((int(self.Mx*self.My)*self.n),dtype=complex)
@@ -59,8 +104,6 @@ class wavefunctions:
         
         # random initialization
         elif phase == 'random': 
-            # psi_init = self.n**(-0.5)*np.ones((self.My,self.Mx,self.n),dtype=complex) + 0.02*np.random.rand(self.My,self.Mx,self.n) # np.random.rand(self.My,self.Mx,self.n)
-            # psi_init = n**(-0.5)*np.ones((My,Mx,n),dtype=complex) + 0.02*np.random.rand(My,Mx,n) # that's the old version - not connected points
             for i in range(self.My):
                 for j in range(self.Mx):
                     H = 10
@@ -100,10 +143,9 @@ class wavefunctions:
         else: # sanity check
             return
         
-        # normalize wave functions
-        normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi_init.reshape((int(self.Mx*self.My),self.n)))**2,axis=1))).reshape(int(self.Mx*self.My),1)
-        psi = normalization_factor*psi_init.reshape((int(self.Mx*self.My),self.n))
-        return psi.reshape((int(self.Mx*self.My)*self.n)) # reshaping the array
+        wfn_manip = wavefunc_operations(params=self.param_dict)
+        psi_init = wfn_manip.normalize_wf(psi_init, shape=(self.My,self.Mx,self.n))
+        return psi_init
 
 class wavefunc_operations:
     ''' Class for elementary wavefunc operations
@@ -126,6 +168,9 @@ class wavefunc_operations:
         Methods:
             self.normalization_factor_wf(psi): computes 1/norm = normalization factor for every individual rotor
             self.normalize_wf(psi, shape): outputs a w.f. in which every individual rotor is normalized
+            self.reshape_one_dim(psi): reshapes psi to My*Mx*n
+            self.reshape_two_dim(psi): reshapes psi to (My*Mx,n)
+            self.reshape_three_dim(psi): reshapes psi to (My,Mx,n)
         ----
     '''    
 
@@ -167,14 +212,45 @@ class wavefunc_operations:
             ----
         '''
         normalization_factor = self.normalization_factor_wf(psi)
-        psi = normalization_factor*psi.reshape(shape)
+        psi = normalization_factor*psi.reshape((self.My*self.Mx,self.n)) #.reshape(shape)
         return psi
     
+    def reshape_one_dim(self, psi):
+        return psi.reshape((self.My*self.Mx*self.n))
+    
+    def reshape_two_dim(self, psi):
+        return psi.reshape((self.My*self.Mx,self.n))
+    
+    def reshape_three_dim(self, psi):
+        return psi.reshape((self.My,self.Mx,self.n))
     '''
         TODo: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
     '''
     
 class permute_rotors:
+    ''' Class for moving the rotors in the different directions
+        ----
+        
+        ----
+        Inputs: 
+            psi (3-dimensional: (My,Mx,n)): input psi
+        ----
+
+        ----
+        Outputs:
+            psi (3-dimensional: (My,Mx,n)): but here, one column or row was shifted
+        ----
+
+        ----
+        Methods: 
+            (Note for below: convention in array: [My,Mx,n]; [i,j] means picking the (i-th,j-th) rotor from the array)
+            self.get_next_y_rotor(): "equivalent" to [(i+1)%self.My,j]
+            self.get_prev_y_rotor(): "equivalent" to [i-1,j]
+            self.get_next_x_rotor(): "equivalent" to [i,(j+1)%self.Mx]
+            self.get_prev_x_rotor(): "equivalent" to [i,j-1]
+        ----
+    '''
+
     def __init__(self, psi):
         self.psi = psi
 
@@ -189,4 +265,3 @@ class permute_rotors:
     
     def get_prev_x_rotor(self):
         return np.roll(self.psi, -1, axis=1)
-        

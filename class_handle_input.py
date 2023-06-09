@@ -200,8 +200,8 @@ class imag_time:
         try: os.makedirs(folder_name)
         except FileExistsError: pass
 
-        file_name = 'psi_rotors_2d_real_time_prop_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
-            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_V0_'
+        file_name = 'psi_rotors_2d_imag_time_prop_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_dt_'+str(self.dt)+'_init_'+self.param_dict['init_choice']+'_V0_'
         return folder_name, file_name
 
     def energy_results_folder_structure_imag_time_prop(self, path_main):
@@ -216,7 +216,8 @@ class imag_time:
         except FileExistsError: pass
 
         file_name = 'energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
-            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
 
         return folder_name, file_name
     
@@ -226,17 +227,18 @@ class imag_time:
         V_max = np.max(V_0_array)
 
         folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
-            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/polaron_size/'
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/polaron_size/'+'init_'+self.param_dict['init_choice']+'/'
         
         try: os.makedirs(folder_name)
         except FileExistsError: pass
 
         file_name = 'pol_size_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
-            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
 
         return folder_name, file_name
     
-class green_function: ### renme to real time propagation
+class real_time: ### renme to real time propagation
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])

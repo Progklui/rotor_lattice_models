@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 
-import os, sys
+import os, sys, gc
 
 path = os.path.dirname(__file__) 
 sys.path.append(path)
@@ -92,20 +92,6 @@ class eom:
         # object for manipulating wavefunctions
         wfn_manip = h_wavef.permute_rotors(psi_collection)
 
-        #TL_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        #TR_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        #TU_arr = np.zeros((self.My,self.Mx), dtype=complex)
-        #TD_arr = np.zeros((self.My,self.Mx), dtype=complex)
-
-        # compute arrays for all the pairwise (column/row wise) overlaps
-        #for k in range(self.My):
-        #    for p in range(self.Mx):
-        #        TD_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[(k+1)%self.My,p])
-        #        TU_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k-1,p])
-        #    
-        #        TR_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,(p+1)%self.Mx])
-        #        TL_arr[k,p] = np.sum(np.conjugate(psi_collection[k,p])*psi_collection[k,p-1])
-
         psi_collection_conj = np.conjugate(psi_collection)
 
         # compute transfer integrals 
@@ -146,6 +132,7 @@ class eom:
         H_psi[0,self.Mx-1]         += self.V_0*np.cos(self.x+0.75*np.pi)*psi_collection[0,self.Mx-1]
 
         H_psi = H_psi.reshape((self.M,self.n))
+
         return H_psi
 
     def rhs_lang_firsov_imag_time_prop(self, psi_collection):
@@ -261,6 +248,8 @@ class eom:
             ----
         '''
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+        psi_init = wfn_manip.reshape_one_dim(psi_init)
+
         func = self.create_integration_function_imag_time_prop() # lambda expression of right-hand-side of e.o.m
 
         iter = 0
@@ -314,12 +303,13 @@ class eom:
         '''
 
         # input object for storing the results
-        in_object = h_in.green_function(params=self.param_dict)
+        in_object = h_in.real_time(params=self.param_dict)
         folder_name_g, file_name_green = in_object.result_folder_structure_real_time_prop(path_main) # get the folder structure for results
         folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_real_time_prop(path_main) # get the folder structure for wavefunctions
 
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
-
+        psi_init = wfn_manip.reshape_one_dim(psi_init)
+        
         # energy objects
         energy_object = energy.energy(params=self.param_dict) 
         overlap_object = energy.coupling_of_states(params=self.param_dict) # needed for overlap calculations
@@ -330,7 +320,7 @@ class eom:
         # lambda expression for right-hand-side of e.o.m
         func = self.create_integration_function_real_time_prop() 
 
-        psi_curr = psi_init
+        psi_curr = psi_init.copy()
         iter = 0 # time step variable
         max_iter = self.param_dict['time_steps']
         for iter in range(max_iter):
@@ -353,5 +343,8 @@ class eom:
             with open(folder_name_g+file_name_green, 'a') as green_f_file:
                 write_string = str(green_function)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
                 green_f_file.write(write_string)
+
+            del sol
+            gc.collect()
 
         return 

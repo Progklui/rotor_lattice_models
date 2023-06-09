@@ -1,7 +1,7 @@
 import numpy as np
 import scipy 
 
-import os, sys
+import os, sys, gc
 
 path = os.path.dirname(__file__) 
 sys.path.append(path)
@@ -178,5 +178,3 @@ class coupling_of_states:
             e_vec1[:,i] = e_vec1[:,i].copy()/(np.sqrt(np.sum(np.conjugate(e_vec1[:,i])*e_vec1[:,i])))
             
         return eigen_values.real, y_theory, e_vec1
-
-    
