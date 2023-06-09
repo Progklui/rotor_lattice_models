@@ -284,7 +284,7 @@ class eom:
 
             iter = iter + 1
 
-        psi_out = psi_init
+        psi_out = psi_init.reshape((self.My,self.Mx,self.n))
         return psi_out
     
 
@@ -321,11 +321,12 @@ class eom:
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
 
         # energy objects
-        energy_object = energy.energy(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty,
-                                    qx=self.qx, qy=self.qy, n=self.n, x=self.x, dt=self.dt, tol=self.tol) 
-        overlap_object = energy.coupling_of_states(Mx=self.Mx, My=self.My, B=self.B, V_0=self.V_0, tx=self.tx, ty=self.ty,
-                                    n=self.n, x=self.x, dt=self.dt, tol=self.tol) # needed for overlap calculations
+        energy_object = energy.energy(params=self.param_dict) 
+        overlap_object = energy.coupling_of_states(params=self.param_dict) # needed for overlap calculations
         
+        energy_object.V_0 = self.V_0
+        overlap_object.V_0 = self.V_0
+
         # lambda expression for right-hand-side of e.o.m
         func = self.create_integration_function_real_time_prop() 
 
@@ -341,7 +342,7 @@ class eom:
             
             norm = np.sum(1./wfn_manip.normalization_factor_wf(psi_curr))/self.M
             green_function = overlap_object.calc_overlap(psi_curr, psi_init) 
-            E = np.asarray(energy_object.calc_energy(psi_curr))
+            E = energy_object.calc_energy(psi_curr)
 
             print("Green   =", green_function)
             print("Energy  =", E)

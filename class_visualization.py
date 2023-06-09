@@ -27,20 +27,22 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
             self.format = r'$\mathdefault{%s}$' % self.format
 
 class configurations:
-    def __init__(self, Mx, My, B, tx, ty, qx, qy, n, dt, tol, Vmin, Vmax):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
-        self.dt  = dt
-        self.tol = tol
-        self.Vmin = Vmin
-        self.Vmax = Vmax
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
+        #self.Vmin = Vmin
+        #self.Vmax = Vmax
 
     def plot_configuration_real_time(self, psi_rotors, V_0, t_index, chosen_My, chosen_Mx, scan_dir, path_main):
         A = 6
@@ -136,6 +138,44 @@ class configurations:
         plt.tick_params(which='minor', axis='y', direction='in', right=True)
 
         plt.savefig(in_object.get_file_name(path_main, folder_name, file_name)+'.png', dpi=400, bbox_inches='tight')
+        plt.close()
+
+    def plot_polaron_size_imag_time(self, sigma, V_0, file_name):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
+
+        M = int(self.Mx*self.My)
+
+        fig = plt.figure()
+        plt.title(r'$V_0 =$'+str(V_0), fontsize=font_size)
+        
+        #sigma = sigma[40:60, 8:20]
+
+        pc = plt.pcolormesh(sigma, vmin=0, vmax=1)
+        cbar = fig.colorbar(pc)
+        cbar.ax.tick_params(labelsize=font_size, length=6)
+        cbar.set_label(label=r'$\sigma^2_{\phi}/\sigma^2_0$', size=font_size)
+        
+        chosen_Mx = sigma.shape[1]
+        chosen_My = sigma.shape[0]
+
+        plt.xlabel(r'$M_x$', fontsize=font_size)
+        plt.ylabel(r'$M_y$', fontsize=font_size)
+
+        plt.xticks([0, chosen_Mx/4, chosen_Mx/2, 3*chosen_Mx/4, chosen_Mx], 
+                   [r'0', str(int(chosen_Mx/4)), str(int(chosen_Mx/2)), str(int(3*chosen_Mx/4)), str(int(chosen_Mx))], fontsize=font_size)
+        plt.yticks([0, chosen_My/4, chosen_My/2, 3*chosen_My/4, chosen_My], 
+                   [r'0', str(int(chosen_My/4)), str(int(chosen_My/2)), str(int(3*chosen_My/4)), str(int(chosen_My))], fontsize=font_size)
+
+        plt.tick_params(axis='x', direction='in', length=6, top=True)
+        plt.tick_params(axis='y', direction='in', length=6, right=True)
+        plt.tick_params(which='minor', axis='y', direction='in', right=True)
+
+        plt.savefig(file_name+'.png', dpi=400, bbox_inches='tight')
         plt.close()
 
     def plot_configuration(self, psi_rotors, V_0_pool, V_index, scan_dir, path_main):

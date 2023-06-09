@@ -172,7 +172,71 @@ class params:
             if accept == 'y': return potential_points, Vmin, Vmax, n_states, path1, path2, path3, path4
             else: exit()
 
-class green_function:
+class imag_time:
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
+        self.tol = int(params['tol'])
+
+    def wavefunction_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/matrix_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'psi_rotors_2d_real_time_prop_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_V0_'
+        return folder_name, file_name
+
+    def energy_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/energies/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
+    def polaron_size_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/polaron_size/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'pol_size_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+
+        return folder_name, file_name
+    
+class green_function: ### renme to real time propagation
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])

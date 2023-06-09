@@ -7,19 +7,20 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 class energy:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, x, dt, tol):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.V_0 = V_0 # not an array expected here! - compute individually for the whole list
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.x   = x
-        self.dt  = dt
-        self.tol = tol
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0']) # for safety, update, set outside!
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
 
     def calc_energy(self, psi): # calculate the energy of every coupling
         psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
@@ -53,20 +54,31 @@ class energy:
         
         E = E_T + E_V + E_B # sum the individual energy contributions for total energy
 
-        return E, E_T, E_B, E_V # deliberately not converted to real - facilitates/allows error checking!
+        E_out = np.array([E, E_T, E_B, E_V], dtype=complex)
+        return E_out 
+
+    def analytic_small_polaron_energy(self):
+        '''
+            TODo: add here the Mathieu function expressions!
+        '''
+        E = 0
+        return E
 
 class coupling_of_states:
-    def __init__(self, Mx, My, B, V_0, tx, ty, n, x, dt, tol):
-        self.Mx   = Mx
-        self.My   = My
-        self.B    = B
-        self.V_0  = V_0 # not an array expected here - compute individually for the whole list
-        self.tx   = tx
-        self.ty   = ty
-        self.n    = n
-        self.x    = x
-        self.dt   = dt
-        self.tol  = tol
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0']) # for safety, update, set outside!
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
 
     # calculate matrix element <psi1|H|psi2>  
     def calc_hamiltonian_matrix_element(self, psi1, q1, psi2, q2): 
