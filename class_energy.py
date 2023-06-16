@@ -6,7 +6,42 @@ import os, sys, gc
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
+import class_handle_wavefunctions as h_wavef
+
 class energy:
+    ''' Class for computing the energy of a given wavefunction
+
+        ----
+        Inputs:
+            params: dictionary with all calculation parameters
+        ----
+
+        Important variables (mainly for ourput/debugging):
+        
+        ----
+        Calculation parameters and class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotor lattice in x direction
+            My (int): number of rotor lattice in y direction
+
+            tx (float): tunneling ratio in x direction
+            ty (float): tunneling ratio in y direction
+            V_0 (float): coupling strength of interaction term
+            B (float): rotational constant
+            qx (int): wavenumber of electron in x direction
+            qy (int): wavenumber of electron in y direction
+        ----
+
+        but most importantly:
+
+        ----
+        Methods:
+            self.calc_energy(wavefunc. as three-dimensional numpy array): calculate energy for a given psi and parameters given in psi
+            self.deriv_dE_dt(wavefunc. as three-dimensional numpy array): computes partial derivative of E with respect to tx and ty
+            self.analytic_small_polaron_energy(): calculate analytic small polaron energies
+        ----
+    '''
+
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])
@@ -20,26 +55,53 @@ class energy:
         self.qy  = int(params['qy'])
         self.n   = int(params['n'])
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
-        self.dt  = float(params['dt'])
 
-    def calc_energy(self, psi): # calculate the energy of every coupling
+    def calc_energy(self, psi):
+        '''
+            Computes: energy of psi
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My, Mx, n), dtype: complex): rotor wavefunction
+            ----
+
+            ----
+            Variables: 
+                psi_collection_conj (3-dimensional: (My, Mx, n), dtype: complex): complex conjugate
+
+                TD_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for down jumping 
+                TU_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for up jumping
+                TR_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for right jumping
+                TL_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for left jumping
+
+                TD (scalar, dtype=complex): product of TD_arr
+                TU (scalar, dtype=complex): product of TU_arr
+                TR (scalar, dtype=complex): product of TR_arr
+                TL (scalar, dtype=complex): product of TL_arr
+
+                E_T (scalar, dtype=complex): kinetic/tunneling energy of electron
+                E_B (scalar, dtype=complex): kinetic energy of rotors
+                E_V (scalar, dtype=complex): interaction energy of electrons and rotors
+                E (scalar, dtype=complex): total energy
+                E_out (4-dimensional: (E, E_T, E_B, E_V)): energy array of psi
+            ----
+
+            ----
+            Outputs:
+                E_out (4-dimensional: (E, E_T, E_B, E_V)): energy array of psi
+            ----
+        '''
+
         psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
 
-        # compute all the transfer integrals
-        TD = 1 + 0j; TU = 1 + 0j; TR = 1 + 0j; TL = 1 + 0j
-        for k in range(self.My): 
-            for p in range(self.Mx):
-                TD = TD*np.sum(np.conjugate(psi[k,p])*psi[(k+1)%self.My,p])
-                TU = TU*np.sum(np.conjugate(psi[k,p])*psi[k-1,p])
-                
-                TR = TR*np.sum(np.conjugate(psi[k,p])*psi[k,(p+1)%self.Mx])
-                TL = TL*np.sum(np.conjugate(psi[k,p])*psi[k,p-1])
-
         # tunneling energy
-        E_T = -self.ty*(np.exp(-1j*2*np.pi*self.qy/self.My)*TD + np.exp(+1j*2*np.pi*self.qy/self.My)*TU) \
-            -self.tx*(np.exp(-1j*2*np.pi*self.qx/self.Mx)*TR + np.exp(+1j*2*np.pi*self.qx/self.Mx)*TL)
+        dE_dtx, dE_dty = self.deriv_dE_dt(psi)
+        E_T = self.ty*dE_dty + self.tx*dE_dtx
 
         # kinetic energy of rotors
+        '''
+            outsource the computation of the second derivative 
+        '''
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
         E_B = 0+0j
         for k in range(self.My):
@@ -57,14 +119,101 @@ class energy:
         E_out = np.array([E, E_T, E_B, E_V], dtype=complex)
         return E_out 
 
+    def deriv_dE_dt(self, psi):
+        '''
+            Computes: derivative of the energy with respect to tx and ty
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My, Mx, n), dtype: complex): rotor wavefunction
+            ----
+
+            ----
+            Variables: 
+                psi_collection_conj (3-dimensional: (My, Mx, n), dtype: complex): complex conjugate
+
+                TD_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for down jumping 
+                TU_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for up jumping
+                TR_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for right jumping
+                TL_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for left jumping
+
+                TD (scalar, dtype=complex): product of TD_arr
+                TU (scalar, dtype=complex): product of TU_arr
+                TR (scalar, dtype=complex): product of TR_arr
+                TL (scalar, dtype=complex): product of TL_arr
+
+                dE_dtx (scalar, dtype=complex): partial derivative of E with respect to tx
+                dE_dty (scalar, dtype=complex): partial derivative of E with respect to ty
+            ----
+
+            ----
+            Outputs:
+                dE_dtx, dE_dty
+            ----
+        '''
+
+        # object for manipulating wavefunctions
+        wfn_manip = h_wavef.permute_rotors(psi)
+
+        psi_collection_conj = np.conjugate(psi)
+
+        # compute transfer integrals 
+        TD_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex), -1, axis=0)
+        TU_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex), 1, axis=0)
+        TR_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex), -1, axis=1)
+        TL_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex), 1, axis=1)
+        
+        TD = np.prod(TD_arr)
+        TU = np.prod(TU_arr)
+        TR = np.prod(TR_arr)
+        TL = np.prod(TL_arr)
+
+        # partial derivatives
+        dE_dtx = -(np.exp(-1j*2*np.pi*self.qx/self.Mx)*TR + np.exp(+1j*2*np.pi*self.qx/self.Mx)*TL)
+        dE_dty = -(np.exp(-1j*2*np.pi*self.qy/self.My)*TD + np.exp(+1j*2*np.pi*self.qy/self.My)*TU)
+
+        return dE_dtx, dE_dty
+
     def analytic_small_polaron_energy(self):
         '''
-            TODo: add here the Mathieu function expressions!
+            TODO: add here the Mathieu function expressions!
         '''
         E = 0
         return E
 
 class coupling_of_states:
+    ''' Class for computing the effective hamiltonian
+
+        ----
+        Inputs:
+            params: dictionary with all calculation parameters
+        ----
+
+        Important variables (mainly for ourput/debugging):
+        
+        ----
+        Calculation parameters and class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotor lattice in x direction
+            My (int): number of rotor lattice in y direction
+
+            tx (float): tunneling ratio in x direction
+            ty (float): tunneling ratio in y direction
+            V_0 (float): coupling strength of interaction term
+            B (float): rotational constant
+            qx (int): wavenumber of electron in x direction
+            qy (int): wavenumber of electron in y direction
+        ----
+
+        but most importantly:
+
+        ----
+        Methods:
+            self.calc_energy(wavefunc. as three-dimensional numpy array): calculate energy for a given psi and parameters given in psi
+            self.analytic_small_polaron_energy(): calculate analytic small polaron energies
+        ----
+    '''
+
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])

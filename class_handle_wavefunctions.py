@@ -41,43 +41,23 @@ class wavefunctions:
         self.qy  = int(params['qy'])
         self.n   = int(params['n'])
         '''
-            Todo: make external functional that creates the angle grid - such that this can be changed externally somehow!
+            TODO: make external functional that creates the angle grid - such that this can be changed externally somehow!
         '''
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
 
-    def create_init_wavefunction(self, phase):
-        '''
-            Computes: initial wavefunctions, mainly for imag time propagation
+    def init_read_in_wf(self, path_to_file):
+        psi_init = np.load(path+'/'+path_to_file).reshape((self.My,self.Mx,self.n))
+        return psi_init
+    
+    def init_uniform(self):
+        psi_init = self.n**(-0.5)*np.ones((self.My,self.Mx,self.n),dtype=complex)
+        return psi_init
+    
+    def init_ferro_domain(self, orientation):
+        # create object
+        psi_init = self.init_uniform()
 
-            ----
-            Inputs:
-                phase (string): specified in input file, options:
-                    - phase == 'uniform': Y_11
-                    - phase == 'ferro_domain_vertical_wall': polarized domain wall states, vertically
-                    - phase == 'ferro_domain_horizontal_wall': polarized domain wall states, horizontally
-                    - phase == 'random': continous random wavefunctions
-                    - phase == 'small_polaron': analytic Mathieu function
-            ----
-
-            ----
-            Variables:
-                psi_init (3-dimensional: My,Mx,n): array which functions are to be defined here
-            ----
-
-            ----
-            Outputs:
-                psi_init (3-dimensional: (My,Mx,n)): output wavefunction with the initialized symmetry
-            ----
-        '''
-        # psi_init is expected in the format Mx*My*n
-        psi_init = self.n**(-0.5)*np.ones((int(self.Mx*self.My)*self.n),dtype=complex)
-        psi_init = psi_init.reshape((self.My,self.Mx,self.n))
-
-        if phase == 'uniform':
-            psi_init = self.n**(-0.5)*np.ones((int(self.Mx*self.My)*self.n),dtype=complex)
-        
-        # initialization for the ferroelectric domain, wall oriented vertically
-        elif phase == 'ferro_domain_vertical_wall': 
+        if orientation == 'vertical':
             for i in range(self.My):
                 # other option is to try with np.cos(0.5*x) and np.sin(...)
 
@@ -91,8 +71,7 @@ class wavefunctions:
                 psi_init[i,0][0:int(self.n/4)] = 0.01 + 0j
                 psi_init[i,0][int(3*self.n/4):self.n] = 0.01 + 0j
                 
-        # initialization for the ferroelectric domain, wall oriented horizontally   
-        elif phase == 'ferro_domain_horizontal_wall': 
+        elif orientation == 'horizontal':
             for j in range(self.Mx):
                 # top row
                 psi_init[self.My-1,j] = np.sin(self.x) 
@@ -101,47 +80,100 @@ class wavefunctions:
                 # bottom row
                 psi_init[0,j] = np.sin(self.x) 
                 psi_init[0,j][int(self.n/2):self.n] = 0.01 
+        return psi_init
+    
+    def init_small_polaron(self):
+        # create object
+        psi_init = self.init_uniform()
+
+        # bottom left
+        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+3*np.pi/4)/2*180/np.pi)
+        psi_init[0,self.Mx-1] = y/np.sqrt(np.sum(y*y))
         
-        # random initialization
-        elif phase == 'random': 
-            for i in range(self.My):
-                for j in range(self.Mx):
-                    H = 10
-                    rho = np.random.rand(1,H)*np.logspace(-0.5,-2.5,H)
-                    phi = np.random.rand(1,H)*2*np.pi
+        # bottom right
+        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+np.pi/4)/2*180/np.pi)
+        psi_init[0,0] = y/np.sqrt(np.sum(y*y))
 
-                    # Accumulate r(t) over t=[0,2*pi]
-                    t = (2*np.pi/self.n)*np.arange(self.n) # np.linspace(0,2*np.pi,n)
-                    r = np.ones(len(t))
-                    for h in range(H):
-                        r = r + rho[0][h]*np.ones(len(t))*np.sin(h*t+phi[0][h]*np.ones(len(t)))
+        # top left
+        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-3*np.pi/4)/2*180/np.pi)
+        psi_init[self.My-1,self.Mx-1] = y/np.sqrt(np.sum(y*y))
 
-                    # Reconstruct x(t), y(t)
-                    x = r*np.cos(t)
-                    y = r*np.sin(t)
+        # top right
+        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-np.pi/4)/2*180/np.pi)
+        psi_init[self.My-1,0] = y/np.sqrt(np.sum(y*y))
 
-                    psi_init[i,j] = r + r*1j # not entirely sure about the imaginary part here
+        return psi_init
+    
+    def init_random(self):
+        # create object
+        psi_init = self.init_uniform
 
-        # analytic small polaron wavefunctions
+        for i in range(self.My):
+            for j in range(self.Mx):
+                H = 10
+                rho = np.random.rand(1,H)*np.logspace(-0.5,-2.5,H)
+                phi = np.random.rand(1,H)*2*np.pi
+
+                # Accumulate r(t) over t=[0,2*pi]
+                t = (2*np.pi/self.n)*np.arange(self.n) # np.linspace(0,2*np.pi,n)
+                r = np.ones(len(t))
+                for h in range(H):
+                    r = r + rho[0][h]*np.ones(len(t))*np.sin(h*t+phi[0][h]*np.ones(len(t)))
+
+                # Reconstruct x(t), y(t)
+                x = r*np.cos(t)
+                y = r*np.sin(t)
+
+                psi_init[i,j] = r + r*1j # not entirely sure about the imaginary part here
+
+        return psi_init
+    
+    def create_init_wavefunction(self, phase):
+        '''
+            Computes: initial wavefunctions, mainly for imag time propagation
+
+            ----
+            Inputs:
+                phase (string): specified in input file, options:
+                    - phase == 'uniform': Y_11
+                    - phase == 'ferro_domain_vertical_wall': polarized domain wall states, vertically
+                    - phase == 'ferro_domain_horizontal_wall': polarized domain wall states, horizontally
+                    - phase == 'random': continous random wavefunctions
+                    - phase == 'small_polaron': analytic Mathieu function for the 4 inner rotors
+            ----
+            
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): array which functions are to be defined here
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction with the initialized symmetry
+            ----
+        '''
+
+        if phase == 'uniform':
+            psi_init = self.init_uniform()
+
+        elif phase == 'ferro_domain_vertical_wall': 
+            psi_init = self.init_ferro_domain('vertical')
+                
+        elif phase == 'ferro_domain_horizontal_wall': 
+            psi_init = self.init_ferro_domain('horizontal')
+
         elif phase == 'small_polaron': 
-            # bottom left
-            y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+3*np.pi/4)/2*180/np.pi)
-            psi_init[0,self.Mx-1] = y/np.sqrt(np.sum(y*y))
-        
-            # bottom right
-            y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+np.pi/4)/2*180/np.pi)
-            psi_init[0,0] = y/np.sqrt(np.sum(y*y))
+            psi_init = self.init_small_polaron()
 
-            # top left
-            y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-3*np.pi/4)/2*180/np.pi)
-            psi_init[self.My-1,self.Mx-1] = y/np.sqrt(np.sum(y*y))
+        elif phase == 'random': 
+            psi_init = self.init_random()
 
-            # top right
-            y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-np.pi/4)/2*180/np.pi)
-            psi_init[self.My-1,0] = y/np.sqrt(np.sum(y*y))
+        elif phase == 'external': 
+            path_to_file = self.param_dict['path_to_input_wavefunction']
+            psi_init = self.init_read_in_wf(path_to_file)
 
         else: # sanity check
-            return
+            return 
         
         wfn_manip = wavefunc_operations(params=self.param_dict)
         psi_init = wfn_manip.normalize_wf(psi_init, shape=(self.My,self.Mx,self.n))

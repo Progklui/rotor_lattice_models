@@ -76,11 +76,19 @@ class eom:
 
             ----
             Variables: 
+                psi_collection_conj (3-dimensional: (My, Mx, n), dtype: complex): complex conjugate
+
                 TD_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for down jumping 
                 TU_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for up jumping
-
                 TR_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for right jumping
                 TL_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for left jumping
+
+                TD (scalar, dtype=complex): product of TD_arr
+                TU (scalar, dtype=complex): product of TU_arr
+                TR (scalar, dtype=complex): product of TR_arr
+                TL (scalar, dtype=complex): product of TL_arr
+
+                k2: second derivative matrix
             ----
 
             ----
@@ -90,6 +98,9 @@ class eom:
         '''
         
         # object for manipulating wavefunctions
+        '''
+            TODO: think about combining the kinetic energy calculation with the class_energy object!!
+        '''
         wfn_manip = h_wavef.permute_rotors(psi_collection)
 
         psi_collection_conj = np.conjugate(psi_collection)
@@ -334,14 +345,14 @@ class eom:
             green_function = overlap_object.calc_overlap(psi_curr, psi_init) 
             E = energy_object.calc_energy(psi_curr)
 
-            print("Green   =", green_function)
-            print("Energy  =", E)
-            print("Norm    =", norm, "\n")
+            print("Green  =", green_function)
+            print("Energy =", E)
+            print("Norm   =", norm, "\n")
 
             # save the green function and energy values
             np.save(folder_name_w+file_name_wavefunction+str(iter), psi_curr.reshape(self.My,self.Mx,self.n)) # save wavefunction
             with open(folder_name_g+file_name_green, 'a') as green_f_file:
-                write_string = str(green_function)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
+                write_string = str(iter)+' '+str(green_function)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
                 green_f_file.write(write_string)
 
             del sol
