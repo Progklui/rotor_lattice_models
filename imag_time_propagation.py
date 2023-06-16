@@ -47,7 +47,8 @@ V_0_array = np.array(params['V_0'], dtype=float)
 wavefunc_object = h_wavef.wavefunctions(params=params)
 psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) 
 
-params['init_choice'] = params['external_wf_tag']
+if params['init_choice'] == 'external':
+    params['init_choice'] = params['external_wf_tag'] # reasons to create correct tag for storing the results
 
 # energy object
 energy_object = energy.energy(params=params) 

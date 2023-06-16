@@ -1,9 +1,13 @@
 import numpy as np
 import scipy 
 
-import os, sys
+import time 
+
+import os, sys, gc
 path = os.path.dirname(__file__) 
 sys.path.append(path)
+
+import class_equations_of_motion as eom 
 
 class wavefunctions:
     ''' Class for wavefunction creation
@@ -258,7 +262,101 @@ class wavefunc_operations:
     '''
         TODo: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
     '''
+
+    def add_rotors_to_wavefunction(self, psi):
+        ''' 
+            ----
+            Description: 
+                Adds uniformly oriented rotors to wavefunction - for coupling of state calculations necessary
+            ----
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n)): wavefunction to expand
+            ----
+
+            ----
+            Outputs:
+                psi_new (3-dimensional: (My_new, Mx_new, n)): normalized wavefunction with bigger number of rotors
+            ----
+        '''
+
+        Mx_new = self.param_dict['Mx_new']
+        My_new = self.param_dict['My_new']
+
+        psi = psi.reshape((self.My,self.Mx,self.n))
+        psi_new = self.n**(-0.5)*np.ones((int(My_new),int(Mx_new),self.n),dtype=complex)
+
+        for i in range(My_new):
+            for j in range(Mx_new):
+                if i >= int((My_new-self.My)/2) and i < int((My_new+self.My)/2):
+                    if j >= int((Mx_new-self.Mx)/2) and j < int((Mx_new+self.Mx)/2):
+                        psi_new[(i+int(My_new/2))%My_new,(j+int(Mx_new/2))%Mx_new] = psi[(i+int(self.My/2))%self.My-int((My_new-self.My)/2)%self.My, \
+                                                                                         (j+int(self.Mx/2))%self.Mx-int((Mx_new-self.Mx)/2)%self.Mx]
+
+        # update object Mx, My values for normalization
+        self.Mx = Mx_new 
+        self.My = My_new
+        self.M  = int(Mx_new*My_new)
+
+        psi_out = self.normalize_wf(psi_new, shape=(My_new,Mx_new,self.n))
+
+        del psi_new
+        gc.collect()
+        # normalization_factor = (1.0/np.sqrt(np.sum(np.abs(psi_new.reshape((int(Mx_new*My_new),self.n)))**2,axis=1))).reshape(int(Mx_new*My_new),1)
+        return psi_out #(normalization_factor*psi_new.reshape((int(Mx_new*My_new),self.n))).reshape((int(My_new),int(Mx_new),self.n))
+
+    def expand_and_converge_wf(self, Mx_new_list, My_new_list, V_0, psi):
+        ''' 
+            ----
+            Description: 
+                Expands the wavefunction defined by the protocoll in Mx_new_list and converge again by imag time propagation
+            ----
+
+            ----
+            Inputs:
+                Mx_new_list (1-dimensional: (several points defined by user)): list of Mx values the grid should be sequentially increased
+                My_new_list (1-dimensional: (several points defined by user)): list of My values the grid should be sequentially increased
+                V_0 (scalar): interaction for this wavefunction
+                psi (3-dimensional: (My,Mx,n)): wavefunction to expand
+            ----
+
+            ----
+            Outputs:
+                psi_new (3-dimensional: (My_new[end of list], Mx_new[end of list], n)): normalized wavefunction with bigger number of rotors
+            ----
+        '''
+
+        for i in range(1,len(Mx_new_list)):
+            if i == 1:
+                psi_new = psi.copy()
+            #params_conv = self.param_dict.copy()
+        
+            self.Mx = Mx_new_list[i-1]
+            self.My = My_new_list[i-1]
     
+            '''
+                Here: manipulate wavefunction and add objects 
+            '''
+            self.param_dict['Mx_new'] = Mx_new_list[i]
+            self.param_dict['My_new'] = My_new_list[i]
+            psi_new = self.add_rotors_to_wavefunction(psi_new)
+
+            # imag time propagation of expanded wavefunction
+            tic = time.perf_counter() # start timer
+
+            self.param_dict['Mx'] = Mx_new_list[i]
+            self.param_dict['My'] = My_new_list[i]
+
+            eom_object = eom.eom(params=self.param_dict)
+            eom_object.V_0 = V_0  
+            psi_new = eom_object.solve_for_fixed_params_imag_time_prop(psi_new)
+        
+            toc = time.perf_counter() # end timer
+            print("\nExecution time = ", (toc-tic)/60, "min")
+
+        return psi_new
+
 class permute_rotors:
     ''' Class for moving the rotors in the different directions
         ----
