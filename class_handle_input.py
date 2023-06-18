@@ -150,6 +150,27 @@ class params:
             else: exit()
 
     def get_parameters_coupling_of_states(self, path_main, arg):
+        print('Current settings:\n')
+
+        # read the dictionary file
+        file_path = self.get_file_path(arg)
+        with open(path_main+file_path) as file:
+            data = file.read()
+        param_dict = json.loads(data)
+
+        # print the parameters
+        for key, value in param_dict.items(): 
+            print(key,'=',value)
+
+        # return the dictionary
+        if self.on_cluster == True: return param_dict
+        else:
+            accept = input('\nAccept (y/n)? ')
+            print(' ')
+            if accept == 'y': return param_dict
+            else: exit()
+
+    def get_parameters_coupling_of_states(self, path_main, arg):
         #path_main = os.path.dirname(os.path.abspath(__file__))+"/"
         file_path = self.get_file_path(arg)
         print('Current settings:'); print(' ')
@@ -171,6 +192,88 @@ class params:
             accept = input('Accept (y/n)? ')
             if accept == 'y': return potential_points, Vmin, Vmax, n_states, path1, path2, path3, path4
             else: exit()
+
+class coupl_states:
+    def __init__(self, params_calc, params_wfs):
+        self.param_calc_dict = params_calc
+        self.param_wfs_dict = params_wfs
+        self.Mx  = int(params_calc['Mx'])
+        self.My  = int(params_calc['My'])
+        self.M   = int(params_calc['Mx']*params_calc['My'])
+        self.B   = float(params_calc['B'])
+        self.V_0 = 0 if isinstance(params_calc['V_0'], list) == True else float(params_calc['V_0'])
+        self.tx  = float(params_calc['tx'])
+        self.ty  = float(params_calc['ty'])
+        self.qx  = int(params_calc['qx'])
+        self.qy  = int(params_calc['qy'])
+        self.n   = int(params_calc['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params_calc['dt'])
+        self.tol = int(params_calc['tol'])
+        self.n_states = params_wfs['n_states']
+
+    def get_wavefunctions_per_interaction(self, path_main, V_0):
+        psi_arr = [] 
+        q_arr = []
+        for i in range(self.n_states):
+            descriptor_string = 'path'+str(i+1)
+            wf_string = self.param_wfs_dict[descriptor_string] + str(V_0)+'.npy'
+
+            wavefunc = np.load(path_main+'/'+wf_string).reshape(self.My, self.Mx, self.n)
+            psi_arr.append(wavefunc)
+            
+            q = np.array([0,0])
+            q_arr.append(q)
+
+        return psi_arr, q_arr
+
+    def energy_results_coupling_of_states(self, path_main):
+        V_0_array = np.array(self.param_calc_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/coupling_of_states/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        energies_file_name = 'energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, energies_file_name
+
+    def trans_probs_results_coupling_of_states(self, state_i, path_main):
+        V_0_array = np.array(self.param_calc_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/coupling_of_states/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        probs_file_name = 'transition_probs_2d_state_'+str(state_i)+'_MRCI_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+        
+        return folder_name, probs_file_name
+    
+    def store_energies(self, V_0, E, path_main):
+        folder_name, energies_file_name = self.energy_results_coupling_of_states(path_main)
+
+        with open(folder_name+energies_file_name, 'a') as energy_file:
+            write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
+            energy_file.write(write_string)
+
+    def store_transition_probabilities(self, state_i, V_0, trans_probs, path_main):
+        folder_name, probs_file_name = self.trans_probs_results_coupling_of_states(state_i, path_main)
+
+        with open(folder_name+probs_file_name, 'a') as prob_file:
+            write_string = str(V_0)+' '+str(trans_probs[0])+' '+str(trans_probs[1])+' '+str(trans_probs[2])+' '+str(trans_probs[3])+'\n'
+            prob_file.write(write_string)
 
 class imag_time:
     def __init__(self, params):
