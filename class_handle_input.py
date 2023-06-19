@@ -219,7 +219,7 @@ class coupl_states:
             descriptor_string = 'path'+str(i+1)
             wf_string = self.param_wfs_dict[descriptor_string] + str(V_0)+'.npy'
 
-            wavefunc = np.load(path_main+'/'+wf_string).reshape(self.My, self.Mx, self.n)
+            wavefunc = np.load(path_main+wf_string).reshape(self.My, self.Mx, self.n)
             psi_arr.append(wavefunc)
             
             q = np.array([0,0])
@@ -265,15 +265,25 @@ class coupl_states:
         folder_name, energies_file_name = self.energy_results_coupling_of_states(path_main)
 
         with open(folder_name+energies_file_name, 'a') as energy_file:
-            write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
+            write_string = str(V_0)
+            for i in range(self.n_states):
+                write_string += ' '+str(E[i])
+            write_string += '\n'
+
             energy_file.write(write_string)
 
-    def store_transition_probabilities(self, state_i, V_0, trans_probs, path_main):
-        folder_name, probs_file_name = self.trans_probs_results_coupling_of_states(state_i, path_main)
-
-        with open(folder_name+probs_file_name, 'a') as prob_file:
-            write_string = str(V_0)+' '+str(trans_probs[0])+' '+str(trans_probs[1])+' '+str(trans_probs[2])+' '+str(trans_probs[3])+'\n'
-            prob_file.write(write_string)
+    def store_transition_probabilities(self, V_0, trans_probs_list, path_main):
+        for state_i in range(self.n_states):
+            folder_name, probs_file_name = self.trans_probs_results_coupling_of_states(state_i+1, path_main)
+            
+            trans_probs = trans_probs_list[state_i]
+            
+            with open(folder_name+probs_file_name, 'a') as prob_file:
+                write_string = str(V_0)
+                for i in range(self.n_states):
+                    write_string += ' '+str(trans_probs[i])
+                write_string += '\n'
+                prob_file.write(write_string)
 
 class imag_time:
     def __init__(self, params):

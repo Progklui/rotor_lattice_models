@@ -327,3 +327,17 @@ class coupling_of_states:
             e_vec1[:,i] = e_vec1[:,i].copy()/(np.sqrt(np.sum(np.conjugate(e_vec1[:,i])*e_vec1[:,i])))
             
         return eigen_values.real, y_theory, e_vec1
+    
+    def transition_probabilities(self, n_states, e_kets, s_overlap):
+        # compute the transition amplitudes from every state to the next
+        trans_probs = []
+        for j in range(n_states):
+            ket_norm = np.sqrt(np.conjugate(e_kets[:,j].T)@s_overlap@e_kets[:,j])
+            e_kets[:,j] = e_kets[:,j]/ket_norm
+        
+            amp_j = s_overlap@e_kets[:,j] # amplitudes for the j-th state
+            trans_prob_j = np.abs(amp_j)**2
+
+            trans_probs.append(trans_prob_j)
+
+        return trans_probs
