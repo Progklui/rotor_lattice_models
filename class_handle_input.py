@@ -334,6 +334,23 @@ class imag_time:
 
         return folder_name, file_name
     
+    def t_deriv_energy_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/energies/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'dE_dt_of_energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
     def polaron_size_results_folder_structure_imag_time_prop(self, path_main):
         V_0_array = np.array(self.param_dict['V_0'], dtype=float)
         V_min = np.min(V_0_array)

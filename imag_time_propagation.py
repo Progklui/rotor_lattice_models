@@ -60,13 +60,18 @@ plot_object = vis.configurations(params=params)
 # folder structure objects to store results
 in_object = h_in.imag_time(params=params)
 folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_imag_time_prop(path) 
+
 folder_name_e, file_name_energies = in_object.energy_results_folder_structure_imag_time_prop(path) 
+folder_name_de_dt, file_name_de_dt = in_object.t_deriv_energy_results_folder_structure_imag_time_prop(path)
 folder_name_p, file_name_size = in_object.polaron_size_results_folder_structure_imag_time_prop(path)
 
 tic = time.perf_counter() # start timer
 eom_object = eom.eom(params=params) 
 for V_0 in V_0_array:
     eom_object.V_0 = V_0
+    wavefunc_object.V_0 = V_0 
+
+    psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) # update for small polaron things
     psi_out = eom_object.solve_for_fixed_params_imag_time_prop(psi_init) 
 
     # save wavefunction
@@ -78,6 +83,13 @@ for V_0 in V_0_array:
     with open(folder_name_e+file_name_energies, 'a') as energy_file:
         write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
         energy_file.write(write_string)
+
+    # save dE_dt
+    energy_object.V_0 = V_0
+    dE_dtx, dE_dty = energy_object.deriv_dE_dt(psi_out)
+    with open(folder_name_de_dt+file_name_de_dt, 'a') as de_dt_file:
+        write_string = str(V_0)+' '+str(dE_dtx)+' '+str(dE_dty)+'\n'
+        de_dt_file.write(write_string)
 
     # save and plot polaron size
     sigma = size_object.calc_polaron_size(psi_out, '1')

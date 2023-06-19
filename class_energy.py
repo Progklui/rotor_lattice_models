@@ -176,9 +176,17 @@ class energy:
 
     def analytic_small_polaron_energy(self):
         '''
-            TODO: add here the Mathieu function expressions!
+            NOTE: the evaluation of the wavefunctions doesn't work for very large values of mathieu_param, i.e. for small B's there are problems!
         '''
-        E = 0
+        mathieu_param = 2*self.V_0/self.B
+
+        E = scipy.special.mathieu_a(0, mathieu_param)
+        E += scipy.special.mathieu_a(0, mathieu_param)
+        E += scipy.special.mathieu_a(0, mathieu_param)
+        E += scipy.special.mathieu_a(0, mathieu_param)
+
+        E *= self.B/4.
+
         return E
 
 class coupling_of_states:
