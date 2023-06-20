@@ -255,6 +255,7 @@ class eom:
                 epsilon (scalar, real): between 0 and 1, corresponds to variance of energy (zero for GS)
             ----
         '''
+        
         psi_t1 = psi_t1.reshape((self.My,self.Mx,self.n))
         psi_t2 = psi_t2.reshape((self.My,self.Mx,self.n))
 
