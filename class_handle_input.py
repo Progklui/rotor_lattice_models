@@ -371,7 +371,10 @@ class imag_time:
     def save_energies(self, V_0, E, path_main):
         folder_name_e, file_name_energies = self.energy_results_folder_structure_imag_time_prop(path_main=path_main)
         with open(folder_name_e+file_name_energies, 'a') as energy_file:
-            write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
+            write_string = str(V_0)
+            for i in range(len(E)):
+                write_string += ' '+str(E[i])
+            write_string += '\n'
             energy_file.write(write_string)
         return
 

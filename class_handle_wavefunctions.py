@@ -323,31 +323,51 @@ class wavefunc_operations:
 
     def __init__(self, params):
         self.param_dict = params
-        self.Mx  = int(params['Mx'])
-        self.My  = int(params['My'])
-        self.M   = int(params['Mx']*params['My'])
-        self.n   = int(params['n'])
+        self.Mx = int(params['Mx'])
+        self.My = int(params['My'])
+        self.M  = int(params['Mx']*params['My'])
+        self.n  = int(params['n'])
 
     def normalization_factor_wf(self, psi):
         '''
             ----
-            Inputs:
-                psi (shape doesn't matter: max. 3-dimensional):
+            Description: computes the norm factor for every rotor
+                (1) take abs(psi)**2 of every rotor
+                (2) sum over the 2nd axis (axis=1), i.e. sum over angles
+                (3) take the square and the inverse to get the norm-factor
+                (4) this gives a (M,1) array, specifying the normalization factor for every rotor
             ----
 
+            ----
+            Inputs:
+                psi (shape doesn't matter: max. 3-dimensional)
+            ----
+            
+            ----
+            Variables:
+                norm2 (2-dimensional: (M,n)): norm2 of psi
+                norm_sqrt (2-dimensional: (M,1)): sqrt of norm2, summed over angle n, i.e. sqrt of norm for every single rotor 
+            ---- 
+            
             ----
             Outputs:
-                normalization factor (shape: (Mx*My,1)): gives the normalization factor for every rotor
+                normalization_factor (shape: (My*Mx,1)): normalization factor for every rotor
             ----
         '''
-        psi = psi.reshape((int(self.Mx*self.My),self.n))
+        psi = self.reshape_two_dim(psi) 
 
-        norm = np.sqrt(np.sum(np.abs(psi)**2,axis=1)).reshape(self.M,1)
-        normalization_factor = 1.0/norm #.reshape(int(self.Mx*self.My))
+        norm2 = np.abs(psi)**2
+        norm_sqrt = np.sqrt(np.sum(norm2,axis=1)).reshape(self.M,1)
+
+        normalization_factor = 1.0/norm_sqrt
         return normalization_factor
     
     def normalize_wf(self, psi, shape):
-        '''
+        ''' 
+            ----
+            Description: normalizes every single rotor
+            ----
+
             ----
             Inputs:
                 psi (shape doesn't matter: max. 3-dimensional): wavefunction to normalize
@@ -358,23 +378,105 @@ class wavefunc_operations:
                 psi (shape as specified by input shape=(,,)): normalized wavefunction
             ----
         '''
-        normalization_factor = self.normalization_factor_wf(psi)
-        psi = normalization_factor*psi.reshape((self.My*self.Mx,self.n)) #.reshape(shape)
-        return psi
+
+        normalization_factor = self.normalization_factor_wf(psi) # 1./norm 
+        psi = normalization_factor*self.reshape_two_dim(psi)
+        return psi.reshape(shape)
     
     def reshape_one_dim(self, psi):
+        '''
+            ----
+            Output:
+                psi (1-dimensional (My*Mx*n))
+            ----
+        '''
         return psi.reshape((self.My*self.Mx*self.n))
     
     def reshape_two_dim(self, psi):
+        '''
+            ----
+            Output:
+                psi (2-dimensional (My*Mx,n))
+            ----
+        '''
         return psi.reshape((self.My*self.Mx,self.n))
     
     def reshape_three_dim(self, psi):
+        '''
+            ----
+            Output:
+                psi (3-dimensional (My,Mx,n))
+            ----
+        '''
         return psi.reshape((self.My,self.Mx,self.n))
-    
-    '''
-        TODO: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
-    '''
 
+    def calc_overlap(self, psi1, psi2):
+        ''' 
+            ----
+            Description: total overlap of psi1 and psi2
+            ----
+
+            ----
+            Inputs:
+                psi1 (max. 3-dimensional, but dimension is checked)
+                psi2 (max. 3-dimensional, but dimension is checked)
+            ----
+
+            ----
+            Variables:
+                psi1_conj: conjugate of psi1
+                overlap (scalar, dtype=complex): total overlap
+            ----
+            Output:
+                overlap
+            ----
+        '''
+
+        psi1 = self.reshape_three_dim(psi1) # for safety, to ensure that it is always of same shape
+        psi2 = self.reshape_three_dim(psi2) # psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
+
+        psi1_conj = np.conjugate(psi1)
+
+        overlap = 1 + 0j
+        for k in range(self.My): 
+            for p in range(self.Mx):
+                overlap *= np.sum(psi1_conj[k,p]*psi2[k,p])
+        return overlap
+    
+    def single_rotor_overlap(self, psi1, psi2):
+        ''' 
+            ----
+            Description: single rotor overlaps of psi1 and psi2 
+            ----
+
+            ----
+            Inputs:
+                psi1 (max. 3-dimensional, but dimension is checked)
+                psi2 (max. 3-dimensional, but dimension is checked)
+            ----
+
+            ----
+            Variables:
+                psi1_conj: conjugate of psi1
+            ----
+
+            ----
+            Output:
+                overlap (1-dimensional (M,)): overlap of the M rotors in psi1 and psi2 
+            ----
+        '''
+
+        psi1 = self.reshape_two_dim(psi1) # now a (M,n) object
+        psi2 = self.reshape_two_dim(psi2) # now a (M,n) object
+
+        psi1_conj = np.conjugate(psi1)
+
+        '''
+        sum over angle axis
+        '''
+        overlap = np.sum(psi1_conj*psi2, axis=1) # 
+        return overlap
+    
     def add_rotors_to_wavefunction(self, psi):
         ''' 
             ----

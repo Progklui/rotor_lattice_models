@@ -151,7 +151,8 @@ class energy:
                 dE_dtx, dE_dty
             ----
         '''
-
+        psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
+        
         # object for manipulating wavefunctions
         wfn_manip = h_wavef.permute_rotors(psi)
 
