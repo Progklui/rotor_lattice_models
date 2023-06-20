@@ -368,6 +368,25 @@ class imag_time:
 
         return folder_name, file_name
     
+    def save_energies(self, V_0, E, path_main):
+        folder_name_e, file_name_energies = self.energy_results_folder_structure_imag_time_prop(path_main=path_main)
+        with open(folder_name_e+file_name_energies, 'a') as energy_file:
+            write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
+            energy_file.write(write_string)
+        return
+
+    def save_dE_dt(self, V_0, dE_dtx, dE_dty, path_main):
+        folder_name_de_dt, file_name_de_dt = self.t_deriv_energy_results_folder_structure_imag_time_prop(path_main=path_main)
+        with open(folder_name_de_dt+file_name_de_dt, 'a') as de_dt_file:
+            write_string = str(V_0)+' '+str(dE_dtx)+' '+str(dE_dty)+'\n'
+            de_dt_file.write(write_string)
+        return
+    
+    def save_polaron_size(self, V_0, sigma, path_main):
+        folder_name_p, file_name_size = self.polaron_size_results_folder_structure_imag_time_prop(path_main=path_main)
+        np.savetxt(folder_name_p+file_name_size+str(V_0)+'.out', (sigma))
+        return 
+    
 class real_time: ### renme to real time propagation
     def __init__(self, params):
         self.param_dict = params

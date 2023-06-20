@@ -50,16 +50,77 @@ class wavefunctions:
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
 
     def init_read_in_wf(self, path_to_file):
+        '''
+            Computes: reads in already computed wavefunction
+
+            ----
+            Inputs: 
+                path to wavefunction file starting from the location of the source .py file
+            ----
+            
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+        '''
+
         psi_init = np.load(path+'/'+path_to_file).reshape((self.My,self.Mx,self.n))
         return psi_init
     
     def init_uniform(self):
+        '''
+            Computes: uniform wavefunction
+
+            ----
+            Inputs: 
+                None
+            ----
+            
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): uniform wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output uniform wavefunction
+            ----
+        '''
+
         psi_init = self.n**(-0.5)*np.ones((self.My,self.Mx,self.n),dtype=complex)
         return psi_init
     
     def init_ferro_domain(self, orientation):
-        # create object
-        psi_init = self.init_uniform()
+        '''
+            Computes: ferroelectric domain wall wavefunction
+
+            ----
+            Comment:
+                the parametrization of the wavefunction is empirical!
+            ----
+
+            ----
+            Inputs: 
+                orientation (string): OPTIONS: 'vertical' or 'horizontal', i.e. orientation of domain wall
+            ----
+            
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): ferroelectric domain wall wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+        '''
+
+        psi_init = self.init_uniform() # create object
 
         if orientation == 'vertical':
             for i in range(self.My):
@@ -87,30 +148,76 @@ class wavefunctions:
         return psi_init
     
     def init_small_polaron(self):
-        # create object
-        psi_init = self.init_uniform()
+        '''
+            Computes: analytic small polaron wavefunction
+
+            ----
+            Comments: 
+                Here we generate the GS Mathieu functions with even n=0, although it would be possible to generate excited Mathieu states (ask Georgios)
+                TODO: discuss whether we should consider excited Mathieu states?
+            ----
+
+            ----
+            Inputs: 
+                None
+            ----
+            
+            ----
+            Variables:
+                mathieu_parameter (scalar): parameter of the mathieu equation
+                y (dimension: n): mathieu function for the parameter mathieu_parameter and on x-axis
+                yp (dimension: n): first derivative of mathieu function
+                psi_init (3-dimensional: My,Mx,n): small polaron wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+        '''
+
+        mathieu_parameter = 2*self.V_0/self.B
+        psi_init = self.init_uniform() # create object
 
         # bottom left
-        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+3*np.pi/4)/2*180/np.pi)
+        y, yp = scipy.special.mathieu_cem(0, mathieu_parameter, (self.x+3*np.pi/4)/2*180/np.pi)
         psi_init[0,self.Mx-1] = y/np.sqrt(np.sum(y*y))
         
         # bottom right
-        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x+np.pi/4)/2*180/np.pi)
+        y, yp = scipy.special.mathieu_cem(0, mathieu_parameter, (self.x+np.pi/4)/2*180/np.pi)
         psi_init[0,0] = y/np.sqrt(np.sum(y*y))
 
         # top left
-        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-3*np.pi/4)/2*180/np.pi)
+        y, yp = scipy.special.mathieu_cem(0, mathieu_parameter, (self.x-3*np.pi/4)/2*180/np.pi)
         psi_init[self.My-1,self.Mx-1] = y/np.sqrt(np.sum(y*y))
 
         # top right
-        y, yp = scipy.special.mathieu_cem(0, 2*self.V_0/self.B, (self.x-np.pi/4)/2*180/np.pi)
+        y, yp = scipy.special.mathieu_cem(0, mathieu_parameter, (self.x-np.pi/4)/2*180/np.pi)
         psi_init[self.My-1,0] = y/np.sqrt(np.sum(y*y))
 
         return psi_init
     
     def init_random(self):
-        # create object
-        psi_init = self.init_uniform
+        '''
+            Computes: smooth random wavefunction
+
+            ----
+            Inputs: 
+                None
+            ----
+            
+            ----
+            Variables:
+                psi_init (3-dimensional: My,Mx,n): small polaron wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi_init (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+        '''
+
+        psi_init = self.init_uniform # create object
 
         for i in range(self.My):
             for j in range(self.Mx):
@@ -144,6 +251,7 @@ class wavefunctions:
                     - phase == 'ferro_domain_horizontal_wall': polarized domain wall states, horizontally
                     - phase == 'random': continous random wavefunctions
                     - phase == 'small_polaron': analytic Mathieu function for the 4 inner rotors
+                    - phase == 'external': initialize with an external wavefunction 
             ----
             
             ----
@@ -173,6 +281,9 @@ class wavefunctions:
             psi_init = self.init_random()
 
         elif phase == 'external': 
+            '''
+                TODO: implement check whether the sizes are correct
+            '''
             path_to_file = self.param_dict['path_to_input_wavefunction']
             psi_init = self.init_read_in_wf(path_to_file)
 
@@ -259,8 +370,9 @@ class wavefunc_operations:
     
     def reshape_three_dim(self, psi):
         return psi.reshape((self.My,self.Mx,self.n))
+    
     '''
-        TODo: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
+        TODO: here the overlap function, which is referenced from outside, e.g. from the equations of motion and energy object
     '''
 
     def add_rotors_to_wavefunction(self, psi):

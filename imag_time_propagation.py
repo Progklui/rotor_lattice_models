@@ -4,25 +4,49 @@ import time, os, sys, gc
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
-'''
-    - Goal of the code: time quench of an initially uniformly oriented rotor grid
-    - Call: python3 real_time_propagation.py PATH_TO_INPUT_FILE
+''' Program for imaginary time propagation
 
-    - Philosophy: 
-        - Uniform initialization of the rotor grid
-        - Propagate for dt
-        - Compute properties like Overlap (=Green f. here), Norm and Energy
+    ----
+    Execution:
+        python3 imag_time_propagation.py PATH_TO_INPUT_FILE
+    ----
 
-    - Main output: (a) stores energies in folder: image_results/psi_rotors_...parameters.../energies/
-                   (b) stores polaron size in folder: image_results/psi_rotors_...parameters.../polaron_size/
-                   (c) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
+    ----
+    Input File Structure: here we give an example input file, except of the # comments it can be used
+        {"n": 256,
+        "M": 100,
+        "Mx": 10,
+        "My": 10,
+        "B": 1.0,
+        "tx": 50,
+        "ty": 100,
+        "V_0": [0.0,6.0,12.0,18.0], # COMMENT: list of potential points
+        "qx": 0,
+        "qy": 0,
+        "init_choice": "uniform", # OPTIONS: uniform, ferro_domain_vertical_wall, ferro_domain_horizontal_wall, small_polaron, external
+        "external_wf_tag": "external_ferro-domain", # COMMENT: user defined tag that is added to the file name
+        "path_to_input_wavefunction": "matrix_results/psi_rotors_2d_python_M_100_B_1.0_tx_50.0_ty_100.0_Vmin_6.0_Vmax_18.0/\
+            psi_rotors_2d_imag_time_prop_M_100_Mx_10_My_10_B_1.0_tx_50.0_ty_100.0_Vmin_6.0_Vmax_18.0_qx_0_qy_0_init_ferro_domain_vertical_wall_V0_18.0.npy", 
+        "dt": 0.001,
+        "tol": 1e-12}
+    ----
 
-    - Logic: 
-        1. Create diverse objects for handling equations of motion, energy, polaron size
-        2. Create uniform initialization of the wavefunction
-        3. Imaginary time propagation - evolve until converged
-        4. Store wavefunction, energy and polaron size
-        5. Repeat 3. and 4.
+    ----
+    Description:
+        (1) Create objects for handling equations of motion, energy, polaron size
+        (2) Create initialization of the wavefunction as specified in the input file
+        (3) Imaginary time propagation - evolve until converged
+        (4) Store wavefunction, energy, dE_dt and polaron size
+        (5) Repeat 3. and 4.
+    ----
+
+    ----
+    Output:
+        (1) stores energies in folder: image_results/psi_rotors_...parameters.../energies/
+        (2) stores dE_dt in folder: image_results/psi_rotors_...parameters.../energies/
+        (3) stores polaron size in folder: image_results/psi_rotors_...parameters.../polaron_size/
+        (4) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
+    ----
 '''
 
 # import user-defined classes 
@@ -43,9 +67,8 @@ params = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
 
 V_0_array = np.array(params['V_0'], dtype=float)
 
-# create initial wavefunction
+# initial wavefunction object
 wavefunc_object = h_wavef.wavefunctions(params=params)
-psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) 
 
 if params['init_choice'] == 'external':
     params['init_choice'] = params['external_wf_tag'] # reasons to create correct tag for storing the results
@@ -60,9 +83,6 @@ plot_object = vis.configurations(params=params)
 # folder structure objects to store results
 in_object = h_in.imag_time(params=params)
 folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_imag_time_prop(path) 
-
-folder_name_e, file_name_energies = in_object.energy_results_folder_structure_imag_time_prop(path) 
-folder_name_de_dt, file_name_de_dt = in_object.t_deriv_energy_results_folder_structure_imag_time_prop(path)
 folder_name_p, file_name_size = in_object.polaron_size_results_folder_structure_imag_time_prop(path)
 
 tic = time.perf_counter() # start timer
@@ -74,26 +94,30 @@ for V_0 in V_0_array:
     psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) # update for small polaron things
     psi_out = eom_object.solve_for_fixed_params_imag_time_prop(psi_init) 
 
-    # save wavefunction
+    '''
+    save wavefunction
+    '''
     np.save(folder_name_w+file_name_wavefunction+str(V_0), psi_out) 
 
-    # save energies
+    '''
+    compute and save energies
+    '''
     energy_object.V_0 = V_0
     E = energy_object.calc_energy(psi_out)
-    with open(folder_name_e+file_name_energies, 'a') as energy_file:
-        write_string = str(V_0)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
-        energy_file.write(write_string)
+    in_object.save_energies(V_0, E, path)
 
-    # save dE_dt
+    '''
+    compute and save dE_dt
+    '''
     energy_object.V_0 = V_0
     dE_dtx, dE_dty = energy_object.deriv_dE_dt(psi_out)
-    with open(folder_name_de_dt+file_name_de_dt, 'a') as de_dt_file:
-        write_string = str(V_0)+' '+str(dE_dtx)+' '+str(dE_dty)+'\n'
-        de_dt_file.write(write_string)
+    in_object.save_dE_dt(V_0, dE_dtx, dE_dty, path)
 
-    # save and plot polaron size
+    '''
+    compute, save and plot polaron size
+    '''
     sigma = size_object.calc_polaron_size(psi_out, '1')
-    np.savetxt(folder_name_p+file_name_size+str(V_0)+'.out', (sigma))
+    in_object.save_polaron_size(V_0, sigma, path)
     plot_object.plot_polaron_size_imag_time(sigma, V_0, folder_name_p+file_name_size+str(V_0))
     
     del sigma
