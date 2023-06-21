@@ -6,6 +6,9 @@ import os, sys, csv, json
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
+'''
+TODO: document this class
+'''
 class params:
     def __init__(self, on_cluster):
         self.on_cluster = on_cluster
@@ -285,6 +288,9 @@ class coupl_states:
                 write_string += '\n'
                 prob_file.write(write_string)
 
+'''
+TODO: document this class
+'''
 class imag_time:
     def __init__(self, params):
         self.param_dict = params
@@ -431,7 +437,10 @@ class imag_time:
         folder_name_p, file_name_p = self.plot_rotor_phase_folder_structure_imag_time_prop(path_main)
         np.save(folder_name_p+file_name_p+str(V_0), phases)
         return 
-    
+
+'''
+TODO: document this class
+'''
 class real_time: 
     def __init__(self, params):
         self.param_dict = params
@@ -532,7 +541,6 @@ class real_time:
                 write_string += ' '+str(E[i])
             write_string += '\n'
             green_f_file.write(write_string)
-
         return
     
     def save_dE_dt(self, iter, dE_dtx, dE_dty, path_main):
