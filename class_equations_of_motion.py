@@ -234,9 +234,9 @@ class eom:
 
         return lambda t_, psi_ : 1j*self.rhs_lang_firsov_real_time_prop(psi_.reshape((self.My,self.Mx,self.n)))
 
-    def epsilon_criterion_rhs(self, psi_t1, psi_t2):
+    def epsilon_criterion_rhs_prev_rhs_next(self, psi_t1, psi_t2):
         '''
-            Computes: epsilon criterion based variance of energy
+            Computes: epsilon criterion based on respective overlaps of rhs of psi_t1 and psi_t2
 
             ----
             Inputs:
@@ -263,6 +263,33 @@ class eom:
         rhs_t2 = self.rhs_lang_firsov_imag_time_prop(psi_t2)
 
         epsilon = np.abs(np.sum(np.conjugate(rhs_t1)*rhs_t2))
+        return epsilon
+    
+    def epsilon_criterion_rhs(self, psi_t1):
+        '''
+            Computes: epsilon criterion based on variance of energy
+
+            ----
+            Inputs:
+                psi_t1 (3-dimensional: (My,Mx,n)): wavefunction at time step t-1 
+            ----
+
+            ----
+            Variables:
+                rhs_t1 (1-dimensional: (M*n)): rhs of e.o.m. for psi at t
+            ----
+
+            ----
+            Outputs:
+                epsilon (scalar, real): between 0 and 1, corresponds to variance of energy (zero for GS)
+            ----
+        '''
+        
+        psi_t1 = psi_t1.reshape((self.My,self.Mx,self.n))
+
+        rhs_t1 = self.rhs_lang_firsov_imag_time_prop(psi_t1)
+
+        epsilon = np.abs(np.sum(np.conjugate(rhs_t1)*rhs_t1))
         return epsilon
     
     def epsilon_criterion_single_rotor(self, psi_t1, psi_t2):
@@ -329,24 +356,17 @@ class eom:
         tol = self.param_dict['tol']
         while epsilon > tol:
             print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
-        
+            
+            # imag time evolution for dt
             sol = solve_ivp(func, [0,self.dt], psi_init, method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
 
-            # norm function you could also use einsum and the transformation functions
+            # normalize
             psi_iter = sol.y.T[-1]
             psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
 
-            #epsilon = 4 - np.sum(np.conjugate(psi_iter_before.reshape((M*n)))*psi_col) # indication of convergence
-            #epsilon = 1 - np.max(np.sum(np.conjugate(psi_iter_before.reshape((M,n)))*psin, axis=1)) # indication of convergence
-            #single_rotor_overlap = wfn_manip.single_rotor_overlap(psi_init, psi_iter)
-            #epsilon = self.epsilon_criterion_single_rotor(psi_init, psi_iter) # 1 - np.abs(np.min(single_rotor_overlap))
-            epsilon = self.epsilon_criterion_rhs(psi_init, psi_iter)
-            #epsilon = 1 - np.abs(np.min(np.sum(np.conjugate(psi_init.reshape((self.M,self.n)))*psi_iter, axis=1))) # indication of convergence
-            
-            print('overlap', overlap_object.calc_overlap(psi_init, psi_iter))
-            #epsilon = 1 - np.abs(overlap_object.calc_overlap(psi_init, psi_iter)) 
-            
+            epsilon = self.epsilon_criterion_rhs(psi_iter)
             print("epsilon =", epsilon, "\n")
+            
             psi_init = psi_iter.reshape((self.M*self.n)) # update psi_init
 
             iter = iter + 1
