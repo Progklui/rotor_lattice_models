@@ -16,7 +16,9 @@ sys.path.append(path)
         {"n": 256,
         "M": 100,
         "Mx": 10,
+        "Mx_display": 4, # COMMENT: respective rotor number for which to compute densities and phases
         "My": 10,
+        "My_display": 4, # COMMENT: respective rotor number for which to compute densities and phases
         "B": 1.0,
         "tx": 50,
         "ty": 100,
@@ -45,7 +47,9 @@ sys.path.append(path)
         (1) stores energies in folder: image_results/psi_rotors_...parameters.../energies/
         (2) stores dE_dt in folder: image_results/psi_rotors_...parameters.../energies/
         (3) stores polaron size in folder: image_results/psi_rotors_...parameters.../polaron_size/
-        (4) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
+        (4) stores densities in folder: image_results/psi_rotors_...parameters.../rotor_densities/
+        (5) stores phases in folder: image_results/psi_rotors_...parameters.../rotor_phases/
+        (6) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
     ----
 '''
 
@@ -68,10 +72,14 @@ params = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
 V_0_array = np.array(params['V_0'], dtype=float)
 
 # initial wavefunction object
+wfn_manip = h_wavef.wavefunc_operations(params=params)
 wavefunc_object = h_wavef.wavefunctions(params=params)
 
 if params['init_choice'] == 'external':
     params['init_choice'] = params['external_wf_tag'] # reasons to create correct tag for storing the results
+
+chosen_My = params['My_display']
+chosen_Mx = params['Mx_display']
 
 # energy object
 energy_object = energy.energy(params=params) 
@@ -83,7 +91,6 @@ plot_object = vis.configurations(params=params)
 # folder structure objects to store results
 in_object = h_in.imag_time(params=params)
 folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_imag_time_prop(path) 
-folder_name_p, file_name_size = in_object.polaron_size_results_folder_structure_imag_time_prop(path)
 
 tic = time.perf_counter() # start timer
 eom_object = eom.eom(params=params) 
@@ -92,7 +99,7 @@ for V_0 in V_0_array:
     wavefunc_object.V_0 = V_0 
 
     psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) # update for small polaron things
-    psi_out = eom_object.solve_for_fixed_params_imag_time_prop(psi_init) 
+    psi_out = eom_object.solve_for_fixed_params_imag_time_prop(psi_init) # psi_out is (My,Mx,n) object
 
     '''
     save wavefunction
@@ -118,8 +125,24 @@ for V_0 in V_0_array:
     '''
     sigma = size_object.calc_polaron_size(psi_out, '1')
     in_object.save_polaron_size(V_0, sigma, path)
-    plot_object.plot_polaron_size_imag_time(sigma, V_0, folder_name_p+file_name_size+str(V_0))
+    plot_object.plot_polaron_size_imag_time(sigma, V_0, path)
     
+    '''
+    compute and plot rotor densities and phases
+    '''
+    psi_small = wfn_manip.cut_out_rotor_region(psi_out, chosen_My, chosen_Mx)
+
+    rotor_density = wfn_manip.individual_rotor_density(psi_small, chosen_My, chosen_Mx)
+    rotor_phase = wfn_manip.individual_rotor_phase(psi_small, chosen_My, chosen_Mx)
+
+    in_object.save_densities_phases(rotor_density, rotor_phase, V_0, path)
+    
+    plot_object.plot_single_rotor_density_imag_time(rotor_density, V_0, chosen_My, chosen_Mx, path)
+    plot_object.plot_single_rotor_phase_imag_time(rotor_phase, V_0, chosen_My, chosen_Mx, path)
+
+    '''
+    delete big objects
+    '''
     del sigma
     del psi_out
     gc.collect()

@@ -1,26 +1,55 @@
-import numpy as np
 import time, os, sys
 
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
-'''
-    - Goal of the code: time quench of an initially uniformly oriented rotor grid
-    - Call: python3 real_time_propagation.py PATH_TO_INPUT_FILE
+''' Program for real time propagation, i.e. time quench of an initially uniformly oriented rotor grid
 
-    - Philosophy: 
-        - Uniform initialization of the rotor grid
-        - Propagate for dt
-        - Compute properties like Overlap (=Green f. here), Norm and Energy
+    ----
+    Execution:
+        python3 real_time_propagation.py PATH_TO_INPUT_FILE
+    ----
 
-    - Main output: (a) stores energies in folder: image_results/psi_rotors_...parameters.../green_functions/
-                   (b) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
+    ----
+    Input File Structure: here we give an example input file, except of the # comments it can be used
+        {"n": 256,
+        "M": 100,
+        "Mx": 10,
+        "Mx_display": 4, # COMMENT: respective rotor number for which to compute densities and phases
+        "My": 10,
+        "My_display": 4, # COMMENT: respective rotor number for which to compute densities and phases
+        "B": 1.0,
+        "tx": 50,
+        "ty": 100,
+        "V_0": 80.0, # COMMENT: just one potential point here
+        "qx": 0,
+        "qy": 0,
+        "init_choice": "uniform", # OPTIONS: uniform (always here!), ferro_domain_vertical_wall, ferro_domain_horizontal_wall, small_polaron, external
+        "external_wf_tag": " ", # COMMENT: user defined tag that is added to the file name
+        "path_to_input_wavefunction": " ", 
+        "dt": 0.001,
+        "tol": 1e-12}
+    ----
 
-    1. Create diverse objects for computing green function and energy
-    2. Create uniform initialization of the wavefunction
-    3. Propagate wavefunction for dt, compute Green and Energy
-    4. Update psi_curr and evolve psi_curr again for dt
-    5. Repeat steps 3. and 4. 
+    ----
+    Description:
+        (1) Create objects for computing green function and energy
+        (2) Create UNIFORM initialization of the wavefunction
+        (3) Real time propagate wavefunction for dt
+        (4) Compute overlap (i.e. Green func here), norm sum of every single rotor and energy
+        (5) Update psi_curr and evolve psi_curr again for dt
+        (6) Repeat 3. to 5.
+    ----
+
+    ----
+    Output:
+        (1) stores energies and green func overlaps in folder: image_results/psi_rotors_...parameters.../green_functions/
+        (2) stores dE_dt in folder: image_results/psi_rotors_...parameters.../energies/
+        (3) stores densities in folder: image_results/psi_rotors_...parameters.../rotor_densities/
+        (3) stores phases in folder: image_results/psi_rotors_...parameters.../rotor_phases/
+        (3) stores polaron size in folder: image_results/psi_rotors_...parameters.../polaron_size/
+        (4) stores wavefunctions in separate files, for every time step - can be analyzed in retrospect
+    ----
 '''
 
 # import user-defined classes 

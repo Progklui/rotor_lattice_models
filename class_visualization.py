@@ -44,7 +44,7 @@ class configurations:
         #self.Vmin = Vmin
         #self.Vmax = Vmax
 
-    def plot_configuration_real_time(self, psi_rotors, V_0, t_index, chosen_My, chosen_Mx, scan_dir, path_main):
+    def plot_single_rotor_density_real_time(self, rotor_density, t_index, chosen_My, chosen_Mx, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
         plt.rc('text', usetex=True)
@@ -52,48 +52,104 @@ class configurations:
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
 
-        M = int(self.Mx*self.My)
-
-        psi_rotors = psi_rotors.reshape((self.My,self.Mx,self.n))
-        
         fig, axs = plt.subplots(chosen_My,chosen_Mx, subplot_kw=dict(polar=True))
         plt.suptitle(r'$t =$'+str(t_index)+r'$\Delta t$', fontsize=font_size)
 
-        for i in range(self.My):
-            for j in range(self.Mx):
-                if i >= int((self.My-chosen_My)/2) and i < int((self.My+chosen_My)/2):
-                    if j >= int((self.Mx-chosen_Mx)/2) and j < int((self.Mx+chosen_Mx)/2):
-                        rotor_density = (np.conjugate(psi_rotors[(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx])\
-                            *psi_rotors[(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx]).T
-                        #rotor_density = np.sign(psi_rotors[V_index,(i+int(My/2))%My,(j+int(Mx/2))%Mx].imag)*np.arccos(psi_rotors[V_index,(i+int(My/2))%My,(j+int(Mx/2))%Mx].real/np.abs(psi_rotors[V_index,(i+int(My/2))%My,(j+int(Mx/2))%Mx]))
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                axs[i, j].plot(self.x, rotor_density[i,j].real)
 
-                        axs[i-int((self.My-chosen_My)/2), j-int((self.Mx-chosen_Mx)/2)].plot(self.x, rotor_density.real)
+                axs[i, j].set_yticklabels([])
+                axs[i, j].set_xticklabels([])
+                axs[i, j].set_theta_zero_location('E')
 
-                        axs[i-int((self.My-chosen_My)/2), j-int((self.Mx-chosen_Mx)/2)].set_yticklabels([])
-                        axs[i-int((self.My-chosen_My)/2), j-int((self.Mx-chosen_Mx)/2)].set_xticklabels([])
-                        axs[i-int((self.My-chosen_My)/2), j-int((self.Mx-chosen_Mx)/2)].set_theta_zero_location('E')
+        in_object_g = h_in.real_time(params=self.param_dict)
+        folder_name_plot_g, file_name_plot_green = in_object_g.plot_rotor_density_folder_structure_real_time_prop(path_main, t_index)
 
-                        del rotor_density
-                        gc.collect() 
-
-        in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
-
-        in_object_g = h_in.green_function(Mx=self.Mx, My=self.My, B=self.B, V_0=V_0, tx=self.tx, ty=self.ty, qx=self.qx, qy=self.qy, n=self.n, dt=self.dt, time_steps=self.tol)
-        folder_name_g, file_name_green = in_object_g.plot_result_folder_structure_real_time_prop(path_main, t_index) # get the folder structure for results
-
-        folder_name = '/image_results/psi_rotors_2d_python_M_'+str(M)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
-            +'_Vmin_'+str(f'{self.Vmin:.1f}')+'_Vmax_'+str(f'{self.Vmax:.1f}')+'_complete/configurations/'
-        file_name   = 'psi_rotors_2d_real_time_configuration_V_0_'+str(V_0)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_scan_'\
-            +scan_dir+'_time_index_'+str(t_index)+'_dt_'+str(self.dt)
-        plt.savefig(folder_name_g+file_name_green+'.png', dpi=100)
-        
+        plt.savefig(folder_name_plot_g+file_name_plot_green+'.png', dpi=100)        
         plt.close()
+        return 
+    
+    def plot_single_rotor_density_imag_time(self, rotor_density, V_0, chosen_My, chosen_Mx, path_main):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
 
-        del psi_rotors
-        gc.collect()
+        fig, axs = plt.subplots(chosen_My,chosen_Mx, subplot_kw=dict(polar=True))
+        plt.suptitle(r'$V_0 =$'+str(V_0), fontsize=font_size)
 
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                axs[i, j].plot(self.x, rotor_density[i,j].real)
+
+                axs[i, j].set_yticklabels([])
+                axs[i, j].set_xticklabels([])
+                axs[i, j].set_theta_zero_location('E')
+
+        in_object_g = h_in.imag_time(params=self.param_dict)
+        folder_name_plot, file_name_plot = in_object_g.plot_rotor_density_folder_structure_imag_time_prop(path_main)
+
+        plt.savefig(folder_name_plot+file_name_plot+str(V_0)+'.png', dpi=100)        
+        plt.close()
+        return 
+    
+    def plot_single_rotor_phase_real_time(self, rotor_phase, t_index, chosen_My, chosen_Mx, path_main):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
+
+        fig, axs = plt.subplots(chosen_My,chosen_Mx, subplot_kw=dict(polar=True))
+        plt.suptitle(r'$t =$'+str(t_index)+r'$\Delta t$', fontsize=font_size)
+
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                axs[i, j].plot(self.x, rotor_phase[i,j].real)
+
+                axs[i, j].set_yticklabels([])
+                axs[i, j].set_xticklabels([])
+                axs[i, j].set_theta_zero_location('E')
+
+        in_object_g = h_in.real_time(params=self.param_dict)
+        folder_name_plot_g, file_name_plot_green = in_object_g.plot_rotor_phase_folder_structure_real_time_prop(path_main, t_index)
+
+        plt.savefig(folder_name_plot_g+file_name_plot_green+'.png', dpi=100)        
+        plt.close()
+        return 
+
+    def plot_single_rotor_phase_imag_time(self, rotor_phase, V_0, chosen_My, chosen_Mx, path_main):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
+
+        fig, axs = plt.subplots(chosen_My,chosen_Mx, subplot_kw=dict(polar=True))
+        plt.suptitle(r'$V_0 =$'+str(V_0), fontsize=font_size)
+
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                axs[i, j].plot(self.x, rotor_phase[i,j].real)
+
+                axs[i, j].set_yticklabels([])
+                axs[i, j].set_xticklabels([])
+                axs[i, j].set_theta_zero_location('E')
+
+        in_object_g = h_in.imag_time(params=self.param_dict)
+        folder_name_plot, file_name_plot = in_object_g.plot_rotor_phase_folder_structure_imag_time_prop(path_main)
+
+        plt.savefig(folder_name_plot+file_name_plot+str(V_0)+'.png', dpi=100)        
+        plt.close()
+        return 
+    
     # plot polaron size for a specific potential - mesh on the grid
-    def plot_polaron_size_real_time(self, sigma, V_0, t_index, scan_dir, path_main):
+    def plot_polaron_size_real_time(self, sigma, t_index, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
         plt.rc('text', usetex=True)
@@ -105,23 +161,12 @@ class configurations:
 
         fig = plt.figure()
         plt.title(r'$t =$'+str(t_index)+r'$\Delta t$', fontsize=font_size)
-        
-        #sigma = sigma[40:60, 8:20]
 
         pc = plt.pcolormesh(sigma, vmin=0, vmax=1)
         cbar = fig.colorbar(pc)
         cbar.ax.tick_params(labelsize=font_size, length=6)
         cbar.set_label(label=r'$\sigma^2_{\phi}/\sigma^2_0$', size=font_size)
-
-        in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
-
-        folder_name = '/image_results/psi_rotors_2d_python_M_'+str(M)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
-            +'_Vmin_'+str(f'{self.Vmin:.1f}')+'_Vmax_'+str(f'{self.Vmax:.1f}')+'_complete/polaron_size/'
-        file_name   = 'psi_rotors_2d_real_time_polaron_size_V_0_'+str(V_0)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_scan_'\
-            +scan_dir+'_time_index_'+str(t_index)+'_dt_'+str(self.dt)
         
-        np.savetxt(in_object.get_file_name(path_main, folder_name, file_name)+'.out', (sigma))
-
         chosen_Mx = sigma.shape[1]
         chosen_My = sigma.shape[0]
 
@@ -137,10 +182,14 @@ class configurations:
         plt.tick_params(axis='y', direction='in', length=6, right=True)
         plt.tick_params(which='minor', axis='y', direction='in', right=True)
 
-        plt.savefig(in_object.get_file_name(path_main, folder_name, file_name)+'.png', dpi=400, bbox_inches='tight')
+
+        in_object_g = h_in.real_time(params=self.param_dict)
+        folder_name_plot_g, file_name_plot_green = in_object_g.plot_polaron_size_folder_structure_real_time_prop(path_main, t_index)
+
+        plt.savefig(folder_name_plot_g+file_name_plot_green+'.png', dpi=400, bbox_inches='tight')
         plt.close()
 
-    def plot_polaron_size_imag_time(self, sigma, V_0, file_name):
+    def plot_polaron_size_imag_time(self, sigma, V_0, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
         plt.rc('text', usetex=True)
@@ -148,12 +197,8 @@ class configurations:
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
 
-        M = int(self.Mx*self.My)
-
         fig = plt.figure()
         plt.title(r'$V_0 =$'+str(V_0), fontsize=font_size)
-        
-        #sigma = sigma[40:60, 8:20]
 
         pc = plt.pcolormesh(sigma, vmin=0, vmax=1)
         cbar = fig.colorbar(pc)
@@ -175,7 +220,10 @@ class configurations:
         plt.tick_params(axis='y', direction='in', length=6, right=True)
         plt.tick_params(which='minor', axis='y', direction='in', right=True)
 
-        plt.savefig(file_name+'.png', dpi=400, bbox_inches='tight')
+        in_object_g = h_in.imag_time(params=self.param_dict)
+        folder_name_plot, file_name_plot = in_object_g.polaron_size_results_folder_structure_imag_time_prop(path_main)
+
+        plt.savefig(folder_name_plot+file_name_plot+str(V_0)+'.png', dpi=400, bbox_inches='tight')
         plt.close()
 
     def plot_configuration(self, psi_rotors, V_0_pool, V_index, scan_dir, path_main):

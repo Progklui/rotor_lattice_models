@@ -11,6 +11,9 @@ import class_energy as energy
 import class_handle_input as h_in
 import class_handle_wavefunctions as h_wavef
 
+import class_visualization as vis
+import class_mass_size as mass_size
+
 class eom:
     ''' Class for evaluation of the equations of motion for a rotor lattice ...
 
@@ -346,10 +349,8 @@ class eom:
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
         psi_init = wfn_manip.reshape_one_dim(psi_init)
 
-        overlap_object = energy.coupling_of_states(params=self.param_dict) # needed for overlap calculations
-        overlap_object.V_0 = self.V_0
-
-        func = self.create_integration_function_imag_time_prop() # lambda expression of right-hand-side of e.o.m
+        # lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_imag_time_prop() 
 
         iter = 0
         epsilon = 1 
@@ -357,21 +358,25 @@ class eom:
         while epsilon > tol:
             print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
             
-            # imag time evolution for dt
+            '''
+            imag time evolution for dt
+            '''
             sol = solve_ivp(func, [0,self.dt], psi_init, method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
 
-            # normalize
+            '''
+            normalize
+            '''
             psi_iter = sol.y.T[-1]
             psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
 
             epsilon = self.epsilon_criterion_rhs(psi_iter)
             print("epsilon =", epsilon, "\n")
-            
-            psi_init = psi_iter.reshape((self.M*self.n)) # update psi_init
+
+            psi_init = wfn_manip.reshape_one_dim(psi_iter) # update psi_init
 
             iter = iter + 1
 
-        psi_out = psi_init.reshape((self.My,self.Mx,self.n))
+        psi_out = wfn_manip.reshape_three_dim(psi_init)
         return psi_out
     
 
@@ -396,13 +401,14 @@ class eom:
                 (2) compute overlap of psi_curr with psi_init
                 (3) compute normalization
                 (4) compute energy of psi_curr
-                (5) repeat (1) to (4)
+                (5) compute dE_dt of psi_curr
+                (6) compute single rotor densities, phases and polaron size
+                (7) repeat (1) to (6)
             ----
         '''
 
         # input object for storing the results
         in_object = h_in.real_time(params=self.param_dict)
-        folder_name_g, file_name_green = in_object.result_folder_structure_real_time_prop(path_main) # get the folder structure for results
         folder_name_w, file_name_wavefunction = in_object.wavefunction_folder_structure_real_time_prop(path_main) # get the folder structure for wavefunctions
 
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
@@ -415,34 +421,82 @@ class eom:
         energy_object.V_0 = self.V_0
         overlap_object.V_0 = self.V_0
 
+        # polaron size objects
+        size_object = mass_size.polaron_size(params=self.param_dict)
+        plot_object = vis.configurations(params=self.param_dict)
+
+        chosen_My = self.param_dict['My_display']
+        chosen_Mx = self.param_dict['Mx_display']
+
         # lambda expression for right-hand-side of e.o.m
         func = self.create_integration_function_real_time_prop() 
 
         psi_curr = psi_init.copy()
-        iter = 0 # time step variable
-        max_iter = self.param_dict['time_steps']
+        max_iter = self.param_dict['time_steps'] 
         for iter in range(max_iter):
             print('V_0 =', self.V_0, ', time step = ' + str(iter+1), ' of', max_iter)
 
-            # evolution in imaginary time # method='RK45','DOP853'
+            '''
+            evolution in imaginary time # method='RK45','DOP853'
+            '''
             sol = solve_ivp(func, [0,self.dt], psi_curr, method='RK45', rtol=1e-9, atol=1e-9) 
             psi_curr = sol.y.T[-1] # don't normalize result!?
             
-            norm = np.sum(1./wfn_manip.normalization_factor_wf(psi_curr))/self.M
-            green_function = overlap_object.calc_overlap(psi_curr, psi_init) 
-            E = energy_object.calc_energy(psi_curr)
+            # psi_curr = wfn_manip.normalize_wf(psi_curr, shape=(self.My*self.Mx*self.n))
+
+            psi_process = wfn_manip.reshape_three_dim(psi_curr)
+
+            '''
+            compute norm, overlap and energy
+            '''
+            norm = overlap_object.calc_overlap(psi_process, psi_process)
+            green_function = overlap_object.calc_overlap(psi_process, psi_init) 
+            E = energy_object.calc_energy(psi_process)
+
+            '''
+            compute and save dE_dt
+            '''
+            dE_dtx, dE_dty = energy_object.deriv_dE_dt(psi_process)
+            in_object.save_dE_dt(iter, dE_dtx, dE_dty, path)
+
+            '''
+            compute, save and plot polaron size
+            '''
+            sigma = size_object.calc_polaron_size(psi_process, '1')
+            in_object.save_polaron_size(sigma, iter, path)
+            plot_object.plot_polaron_size_real_time(sigma, iter, path_main)
+
+            '''
+            compute and plot rotor densities and phases
+            '''
+            psi_small = wfn_manip.cut_out_rotor_region(psi_process, chosen_My, chosen_Mx)
+
+            rotor_density = wfn_manip.individual_rotor_density(psi_small, chosen_My, chosen_Mx)
+            rotor_phase = wfn_manip.individual_rotor_phase(psi_small, chosen_My, chosen_Mx)
+
+            in_object.save_densities_phases(rotor_density, rotor_phase, iter, path)
+
+            plot_object.plot_single_rotor_density_real_time(rotor_density, iter, chosen_My, chosen_Mx, path_main)
+            plot_object.plot_single_rotor_phase_real_time(rotor_phase, iter, chosen_My, chosen_Mx, path_main)
+            
+            '''
+            save wavefunction
+            '''
+            np.save(folder_name_w+file_name_wavefunction+str(iter), psi_process) # save wavefunction
+
+            '''
+            save the green function and energy values
+            '''
+            E_combined = np.append(np.array([norm,green_function]), E).astype(complex)
+            in_object.save_energies(iter, E_combined, path)
 
             print("Green  =", green_function)
             print("Energy =", E)
             print("Norm   =", norm, "\n")
-
-            # save the green function and energy values
-            np.save(folder_name_w+file_name_wavefunction+str(iter), psi_curr.reshape(self.My,self.Mx,self.n)) # save wavefunction
-            with open(folder_name_g+file_name_green, 'a') as green_f_file:
-                write_string = str(iter)+' '+str(green_function)+' '+str(E[0])+' '+str(E[1])+' '+str(E[2])+' '+str(E[3])+'\n'
-                green_f_file.write(write_string)
-
+            
             del sol
+            del sigma
+            del psi_process
             gc.collect()
 
         return 

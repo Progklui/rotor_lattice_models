@@ -474,9 +474,120 @@ class wavefunc_operations:
         '''
         sum over angle axis
         '''
-        overlap = np.sum(psi1_conj*psi2, axis=1) # 
+        overlap = np.sum(psi1_conj*psi2, axis=1) 
         return overlap
     
+    def cut_out_rotor_region(self, psi, chosen_My, chosen_Mx):
+        ''' 
+            ----
+            Description: 
+                - Cuts out a specified number of rotors, given by chosen_My and chosen_Mx
+                - Is the contrast to the function add_rotors_to_wavefunction(...)
+            ----
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n)): input wavefunction
+                chosen_My (int, scalar): the chosen number of y rotors
+                chosen_Mx (int, scalar): the chosen number of x rotors
+            ----
+
+            ----
+            Outputs:
+                psi_new (3-dimensional: (chosen_My, chosen_Mx, n)): wavefunction with smaller number of rotors
+            ----
+        '''
+
+        psi_new = np.zeros((chosen_My,chosen_Mx,self.n), dtype=complex)
+
+        for i in range(self.My):
+            for j in range(self.Mx):
+                border_i_left  = int((self.My-chosen_My)/2)
+                border_i_right = int((self.My+chosen_My)/2)
+
+                border_j_left  = int((self.Mx-chosen_Mx)/2)
+                border_j_right = int((self.Mx+chosen_Mx)/2)
+
+                if i >= border_i_left and i < border_i_right:
+                    if j >= border_j_left and j < border_j_right:
+                        psi_ind_i = (i+int(self.My/2))%self.My
+                        psi_ind_j = (j+int(self.Mx/2))%self.Mx
+
+                        psi_new[i-border_i_left, j-border_j_left] = psi[psi_ind_i,psi_ind_j]
+                        
+        return psi_new
+    
+    def individual_rotor_density(self, psi, chosen_My, chosen_Mx):
+        ''' 
+            ----
+            Description: computes the density for every single rotor
+            ----
+
+            ----
+            Inputs:
+                psi (3-dimensional: (chosen_My,chosen_Mx,n)): input wavefunction
+                chosen_My (int, scalar): the chosen number of y rotors
+                chosen_Mx (int, scalar): the chosen number of x rotors
+            ----
+
+            ----
+            Outputs:
+                rotor_density (3-dimensional: (chosen_My, chosen_Mx, n)): rotor density for every individual rotor
+            ----
+        '''
+
+        rotor_density = np.zeros((chosen_My,chosen_Mx,self.n), dtype=complex)
+
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                #psi_ind_i = (i+int(chosen_My/2))%chosen_My
+                #psi_ind_j = (j+int(chosen_Mx/2))%chosen_Mx
+
+                ind_rotor_psi = psi[i,j]
+                rotor_density[i,j] = (np.conjugate(ind_rotor_psi)*ind_rotor_psi).T 
+
+        return rotor_density
+    
+    def individual_rotor_phase(self, psi, chosen_My, chosen_Mx):
+        ''' 
+            ----
+            Description: computes the phase for every single rotor
+            ----
+
+            ----
+            Comment: there is another way to compute the phase, instead of using the numpy function:
+                sign_fac = np.sign(ind_rotor_psi.imag) # an (n,) object
+                phase_without_sign = np.arccos(ind_rotor_psi.real/np.abs(ind_rotor_psi)) # an (n,) object
+                
+                phase = sign_fac*phase_without_sign
+            ----
+            Inputs:
+                psi (3-dimensional: (chosen_My,chosen_Mx,n)): input wavefunction
+                chosen_My (int, scalar): the chosen number of y rotors
+                chosen_Mx (int, scalar): the chosen number of x rotors
+            ----
+
+            ----
+            Outputs:
+                rotor_pase (3-dimensional: (chosen_My, chosen_Mx, n)): rotor density for every individual rotor
+            ----
+        '''
+        
+        rotor_pase = np.zeros((chosen_My,chosen_Mx,self.n), dtype=complex)
+
+        for i in range(chosen_My):
+            for j in range(chosen_Mx):
+                #psi_ind_i = (i+int(chosen_My/2))%chosen_My
+                #psi_ind_j = (j+int(chosen_Mx/2))%chosen_Mx
+
+                ind_rotor_psi = psi[i,j]
+
+                phase = np.arctan2(ind_rotor_psi.imag,ind_rotor_psi.real) 
+
+                rotor_pase[i,j] = phase
+
+        return rotor_pase
+
     def add_rotors_to_wavefunction(self, psi):
         ''' 
             ----

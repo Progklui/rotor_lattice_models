@@ -368,6 +368,40 @@ class imag_time:
 
         return folder_name, file_name
     
+    def plot_rotor_density_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/rotor_densities/'+'init_'+self.param_dict['init_choice']+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'rotor_density_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        
+        return folder_name, file_name
+    
+    def plot_rotor_phase_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/rotor_phases/'+'init_'+self.param_dict['init_choice']+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'rotor_phases_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        
+        return folder_name, file_name
+    
     def save_energies(self, V_0, E, path_main):
         folder_name_e, file_name_energies = self.energy_results_folder_structure_imag_time_prop(path_main=path_main)
         with open(folder_name_e+file_name_energies, 'a') as energy_file:
@@ -390,7 +424,15 @@ class imag_time:
         np.savetxt(folder_name_p+file_name_size+str(V_0)+'.out', (sigma))
         return 
     
-class real_time: ### renme to real time propagation
+    def save_densities_phases(self, densities, phases, V_0, path_main):
+        folder_name_d, file_name_d = self.plot_rotor_density_folder_structure_imag_time_prop(path_main)
+        np.save(folder_name_d+file_name_d+str(V_0), densities)
+
+        folder_name_p, file_name_p = self.plot_rotor_phase_folder_structure_imag_time_prop(path_main)
+        np.save(folder_name_p+file_name_p+str(V_0), phases)
+        return 
+    
+class real_time: 
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])
@@ -429,7 +471,19 @@ class real_time: ### renme to real time propagation
         
         return folder_name, file_name
     
-    def plot_result_folder_structure_real_time_prop(self, path_main, i):
+    def t_deriv_energy_results_folder_structure_real_time_prop(self, path_main):
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_V0_'+str(self.V_0)+'/green_functions/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'dE_dt_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_time_steps_'+str(self.time_steps)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
+    def plot_rotor_density_folder_structure_real_time_prop(self, path_main, i):
         folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
             +str(self.ty)+'_V0_'+str(self.V_0)+'/rotor_densities/'
         
@@ -440,3 +494,58 @@ class real_time: ### renme to real time propagation
                 +'_time_steps_'+str(self.time_steps)+'_dt_'+str(self.dt)+'_iter_time_'+str(i)
         
         return folder_name, file_name
+    
+    def plot_rotor_phase_folder_structure_real_time_prop(self, path_main, i):
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_V0_'+str(self.V_0)+'/rotor_phases/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'rotor_phases_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_time_steps_'+str(self.time_steps)+'_dt_'+str(self.dt)+'_iter_time_'+str(i)
+        
+        return folder_name, file_name
+    
+    def plot_polaron_size_folder_structure_real_time_prop(self, path_main, i):
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+            +str(self.ty)+'_V0_'+str(self.V_0)+'/polaron_size/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'pol_size_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_time_steps_'+str(self.time_steps)+'_dt_'+str(self.dt)+'_iter_time_'+str(i)
+        
+        return folder_name, file_name
+    
+    def save_polaron_size(self, sigma, i, path_main):
+        folder_name_p, file_name_size = self.plot_polaron_size_folder_structure_real_time_prop(path_main=path_main, i=i)
+        np.savetxt(folder_name_p+file_name_size+'.out', (sigma))
+        return 
+    
+    def save_energies(self, iter, E, path_main):
+        folder_name_g, file_name_green = self.result_folder_structure_real_time_prop(path_main) # get the folder structure for results
+        with open(folder_name_g+file_name_green, 'a') as green_f_file:
+            write_string = str(iter)
+            for i in range(len(E)):
+                write_string += ' '+str(E[i])
+            write_string += '\n'
+            green_f_file.write(write_string)
+
+        return
+    
+    def save_dE_dt(self, iter, dE_dtx, dE_dty, path_main):
+        folder_name_de_dt, file_name_de_dt = self.t_deriv_energy_results_folder_structure_real_time_prop(path_main=path_main)
+        with open(folder_name_de_dt+file_name_de_dt, 'a') as de_dt_file:
+            write_string = str(iter)+' '+str(dE_dtx)+' '+str(dE_dty)+'\n'
+            de_dt_file.write(write_string)
+        return
+    
+    def save_densities_phases(self, densities, phases, iter, path_main):
+        folder_name_d, file_name_d = self.plot_rotor_density_folder_structure_real_time_prop(path_main, iter)
+        np.save(folder_name_d+file_name_d, densities)
+
+        folder_name_p, file_name_p = self.plot_rotor_phase_folder_structure_real_time_prop(path_main, iter)
+        np.save(folder_name_p+file_name_p, phases)
+        return 
