@@ -15,6 +15,6 @@
 "qy": 0,
 "init_choice": "external",
 "external_wf_tag": "external_ferro-domain_vertical_state_",
-"path_to_input_wavefunction": " ",
+"path_to_input_wavefunction": "matrix_results/psi_rotors_2d_python_M_2000_B_1.0_tx_90.0_ty_100.0_Vmin_50.0_Vmax_50.0/psi_rotors_2d_imag_time_prop_M_2000_Mx_10_My_200_B_1.0_tx_90.0_ty_100.0_Vmin_50.0_Vmax_50.0_qx_0_qy_0_dt_0.001_init_ferro_domain_vertical_wall_V0_50.0.npy",
 "dt": 0.001,
-"tol": 1e-5}
+"tol": 1e-12}

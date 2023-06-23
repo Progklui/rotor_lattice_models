@@ -369,7 +369,7 @@ class eom:
             psi_iter = sol.y.T[-1]
             psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
 
-            epsilon = self.epsilon_criterion_rhs(psi_iter)
+            epsilon = self.epsilon_criterion_single_rotor(psi_iter, psi_init)
             print("epsilon =", epsilon, "\n")
 
             psi_init = wfn_manip.reshape_one_dim(psi_iter) # update psi_init
