@@ -68,7 +68,7 @@ class wavefunctions:
                 psi_init (3-dimensional: (My,Mx,n)): output wavefunction
             ----
         '''
-
+        
         psi_init = np.load(path+'/'+path_to_file).reshape((self.My,self.Mx,self.n))
         return psi_init
     

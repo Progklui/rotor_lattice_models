@@ -75,6 +75,7 @@ V_0_array = np.array(params['V_0'], dtype=float)
 wfn_manip = h_wavef.wavefunc_operations(params=params)
 wavefunc_object = h_wavef.wavefunctions(params=params)
 
+orig_init_choice = params['init_choice']
 if params['init_choice'] == 'external':
     params['init_choice'] = params['external_wf_tag'] # reasons to create correct tag for storing the results
 
@@ -98,7 +99,7 @@ for V_0 in V_0_array:
     eom_object.V_0 = V_0
     wavefunc_object.V_0 = V_0 
 
-    psi_init = wavefunc_object.create_init_wavefunction(params['init_choice']) # update for small polaron things
+    psi_init = wavefunc_object.create_init_wavefunction(orig_init_choice) # update for small polaron things
     psi_out = eom_object.solve_for_fixed_params_imag_time_prop(psi_init) # psi_out is (My,Mx,n) object
 
     '''
