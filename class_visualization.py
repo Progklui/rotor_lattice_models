@@ -47,7 +47,7 @@ class configurations:
     def plot_single_rotor_density_real_time(self, rotor_density, t_index, chosen_My, chosen_Mx, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        #plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -73,7 +73,7 @@ class configurations:
     def plot_single_rotor_density_imag_time(self, rotor_density, V_0, chosen_My, chosen_Mx, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        ##plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -99,7 +99,7 @@ class configurations:
     def plot_single_rotor_phase_real_time(self, rotor_phase, t_index, chosen_My, chosen_Mx, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        ##plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -125,7 +125,7 @@ class configurations:
     def plot_single_rotor_phase_imag_time(self, rotor_phase, V_0, chosen_My, chosen_Mx, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        ##plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -152,7 +152,7 @@ class configurations:
     def plot_polaron_size_real_time(self, sigma, t_index, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        #plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -192,7 +192,7 @@ class configurations:
     def plot_polaron_size_imag_time(self, sigma, V_0, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        #plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -229,7 +229,7 @@ class configurations:
     def plot_configuration(self, psi_rotors, V_0_pool, V_index, scan_dir, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        #plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
@@ -265,7 +265,7 @@ class configurations:
     def plot_phase(self, psi_rotors, V_0_pool, V_index, scan_dir, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
-        plt.rc('text', usetex=True)
+        #plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
         font_size = 18 
