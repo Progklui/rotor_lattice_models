@@ -341,6 +341,79 @@ class eom:
             Logic:
                 (1) evolve psi_init through time dt -> psi_iter
                 (2) reshape psi_iter and normalize it
+                (3) compute energy and save it - allows checking whether we pass transition states
+                (4) check whether epsilon criterion is converged
+                (5) update psi_init and repeat (1) to (4)
+            ----
+        '''
+        wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+        psi_init = wfn_manip.reshape_one_dim(psi_init)
+        
+        # energy objects
+        energy_object = energy.energy(params=self.param_dict) 
+        energy_object.V_0 = self.V_0 
+
+        in_object = h_in.imag_time(params=self.param_dict)
+
+        # lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_imag_time_prop() 
+
+        iter = 0
+        epsilon = 1 
+        tol = self.param_dict['tol']
+        while epsilon > tol:
+            print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
+            
+            '''
+            imag time evolution for dt
+            '''
+            sol = solve_ivp(func, [0,self.dt], psi_init, method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
+
+            '''
+            normalize
+            '''
+            psi_iter = sol.y.T[-1]
+            psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
+
+            '''
+            compute and save energy and epsilon criterion
+            '''
+            E = energy_object.calc_energy(psi_iter)
+            epsilon = self.epsilon_criterion_single_rotor(psi_iter, psi_init)
+            
+            E_epsilon_combined = np.append(np.array([epsilon]), E).astype(complex)
+            in_object.save_energies_during_prop(iter, self.V_0, E_epsilon_combined, path)
+            
+            '''
+            update psi_init
+            '''
+            psi_init = wfn_manip.reshape_one_dim(psi_iter)
+
+            print("epsilon =", epsilon, "\n")
+
+            iter = iter + 1
+
+        psi_out = wfn_manip.reshape_three_dim(psi_init)
+        return psi_out
+    
+    def solve_for_fixed_params_imag_time_latt_conv_prop(self, psi_init):
+        '''
+            Computes: finds ground state variational wave function for the defined parameters
+
+            ----
+            Inputs:
+                psi_init (3-dimensional: (My,Mx,n)): initial wavefunction 
+            ----
+
+            ----
+            Outputs:
+                psi_out (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+
+            ----
+            Logic:
+                (1) evolve psi_init through time dt -> psi_iter
+                (2) reshape psi_iter and normalize it
                 (3) compute overlap with previous variational state, i.e. with psi_init
                 (4) check whether epsilon criterion is converged
                 (5) update psi_init and repeat (1) to (4)
@@ -355,7 +428,7 @@ class eom:
         iter = 0
         epsilon = 1 
         tol = self.param_dict['tol']
-        while epsilon > tol:
+        while iter < tol:
             print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
             
             '''
@@ -378,7 +451,6 @@ class eom:
 
         psi_out = wfn_manip.reshape_three_dim(psi_init)
         return psi_out
-    
 
     def solve_for_fixed_params_real_time_prop(self, psi_init, path_main):
         '''

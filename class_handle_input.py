@@ -340,6 +340,181 @@ class imag_time:
 
         return folder_name, file_name
     
+    def energy_results_folder_structure_imag_time_during_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/energies/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'energies_during_propagation_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
+    def t_deriv_energy_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/energies/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'dE_dt_of_energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
+    def polaron_size_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/polaron_size/'+'init_'+self.param_dict['init_choice']+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'pol_size_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+
+        return folder_name, file_name
+    
+    def plot_rotor_density_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/rotor_densities/'+'init_'+self.param_dict['init_choice']+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'rotor_density_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        
+        return folder_name, file_name
+    
+    def plot_rotor_phase_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/rotor_phases/'+'init_'+self.param_dict['init_choice']+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'rotor_phases_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        
+        return folder_name, file_name
+    
+    def save_energies_during_prop(self, iter, V_0, E, path_main):
+        folder_name_e, file_name_energies = self.energy_results_folder_structure_imag_time_during_prop(path_main=path_main)
+        with open(folder_name_e+file_name_energies, 'a') as energy_file:
+            write_string = str(iter)
+            write_string += ' '+str(V_0)
+            for i in range(len(E)):
+                write_string += ' '+str(E[i])
+            write_string += '\n'
+            energy_file.write(write_string)
+        return
+    
+    def save_energies(self, V_0, E, path_main):
+        folder_name_e, file_name_energies = self.energy_results_folder_structure_imag_time_prop(path_main=path_main)
+        with open(folder_name_e+file_name_energies, 'a') as energy_file:
+            write_string = str(V_0)
+            for i in range(len(E)):
+                write_string += ' '+str(E[i])
+            write_string += '\n'
+            energy_file.write(write_string)
+        return
+
+    def save_dE_dt(self, V_0, dE_dtx, dE_dty, path_main):
+        folder_name_de_dt, file_name_de_dt = self.t_deriv_energy_results_folder_structure_imag_time_prop(path_main=path_main)
+        with open(folder_name_de_dt+file_name_de_dt, 'a') as de_dt_file:
+            write_string = str(V_0)+' '+str(dE_dtx)+' '+str(dE_dty)+'\n'
+            de_dt_file.write(write_string)
+        return
+    
+    def save_polaron_size(self, V_0, sigma, path_main):
+        folder_name_p, file_name_size = self.polaron_size_results_folder_structure_imag_time_prop(path_main=path_main)
+        np.savetxt(folder_name_p+file_name_size+str(V_0)+'.out', (sigma))
+        return 
+    
+    def save_densities_phases(self, densities, phases, V_0, path_main):
+        folder_name_d, file_name_d = self.plot_rotor_density_folder_structure_imag_time_prop(path_main)
+        np.save(folder_name_d+file_name_d+str(V_0), densities)
+
+        folder_name_p, file_name_p = self.plot_rotor_phase_folder_structure_imag_time_prop(path_main)
+        np.save(folder_name_p+file_name_p+str(V_0), phases)
+        return 
+
+class imag_time_conv:
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
+        self.tol = int(params['tol'])
+
+    def wavefunction_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/matrix_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'psi_rotors_2d_imag_time_prop_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_dt_'+str(self.dt)+'_init_'+self.param_dict['init_choice']+'_V0_'
+        return folder_name, file_name
+
+    def energy_results_folder_structure_imag_time_prop(self, path_main):
+        V_0_array = np.array(self.param_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/energies/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        file_name = 'energies_2d_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)+'_init_'+self.param_dict['init_choice']\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'.out'
+
+        return folder_name, file_name
+    
     def t_deriv_energy_results_folder_structure_imag_time_prop(self, path_main):
         V_0_array = np.array(self.param_dict['V_0'], dtype=float)
         V_min = np.min(V_0_array)
@@ -437,7 +612,7 @@ class imag_time:
         folder_name_p, file_name_p = self.plot_rotor_phase_folder_structure_imag_time_prop(path_main)
         np.save(folder_name_p+file_name_p+str(V_0), phases)
         return 
-
+    
 '''
 TODO: document this class
 '''
