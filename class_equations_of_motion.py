@@ -349,9 +349,14 @@ class eom:
         wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
         psi_init = wfn_manip.reshape_one_dim(psi_init)
         
+        psi_0 = psi_init.copy() # for green function 
+
         # energy objects
-        energy_object = energy.energy(params=self.param_dict) 
-        energy_object.V_0 = self.V_0 
+        energy_object = energy.energy(params=self.param_dict)
+        overlap_object = energy.coupling_of_states(params=self.param_dict) # needed for overlap calculations
+        
+        energy_object.V_0 = self.V_0
+        overlap_object.V_0 = self.V_0
 
         in_object = h_in.imag_time(params=self.param_dict)
 
@@ -374,6 +379,19 @@ class eom:
             '''
             psi_iter = sol.y.T[-1]
             psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
+
+            '''
+            compute and save dE_dt
+            '''
+            dE_dtx, dE_dty = energy_object.deriv_dE_dt(psi_iter)
+            in_object.save_dE_dt_during_prop(iter, self.V_0, dE_dtx, dE_dty, path)
+
+            '''
+            compute and save green function
+            '''
+            green_function = overlap_object.calc_overlap(psi_iter, psi_0)
+            green_function = np.array([green_function], dtype=complex)
+            in_object.save_green_func_during_prop(iter, self.V_0, green_function, path)
 
             '''
             compute and save energy and epsilon criterion
