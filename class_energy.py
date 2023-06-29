@@ -103,10 +103,10 @@ class energy:
             outsource the computation of the second derivative 
         '''
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
-        E_B = 0+0j
-        for k in range(self.My):
-            for p in range(self.Mx):
-                E_B -= self.B*np.sum(np.conjugate(psi[k,p])*np.fft.ifft(k2*np.fft.fft(psi[k,p])))
+        E_B = -self.B*np.sum(np.einsum('ijk,ijk->ij', np.conjugate(psi), np.fft.ifft(k2*np.fft.fft(psi))))  + 0j
+        #for k in range(self.My):
+        #    for p in range(self.Mx):
+        #        E_B -= self.B*np.sum(np.conjugate(psi[k,p])*np.fft.ifft(k2*np.fft.fft(psi[k,p])))
 
         # interaction energy
         E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*np.abs(psi[self.My-1,0])**2)
@@ -159,10 +159,10 @@ class energy:
         psi_collection_conj = np.conjugate(psi)
 
         # compute transfer integrals 
-        TD_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex), -1, axis=0)
-        TU_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex), 1, axis=0)
-        TR_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex), -1, axis=1)
-        TL_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex), 1, axis=1)
+        TD_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex)
+        TU_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex)
+        TR_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex)
+        TL_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex)
         
         TD = np.prod(TD_arr)
         TU = np.prod(TU_arr)

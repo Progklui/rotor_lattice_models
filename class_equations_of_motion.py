@@ -68,6 +68,33 @@ class eom:
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
         self.dt  = float(params['dt'])
 
+    def compute_T_matrix_eom(self, Tarr):
+        '''
+            Computes: the transfer integrals in the equations of motion
+
+            ----
+            Inputs:
+                Tarr (2-dimensional: (My,Mx)): contains the overlaps of the single rotor wavefunctions
+            ----
+
+            ----
+            Outputs:
+                Tarr_new (3-dimensional: (My,Mx,n)): the muliplied transfer integrals except the (i,j) one
+            ----
+        '''
+        T_cur_arr = Tarr.copy()
+        Tarr_new = np.zeros(Tarr.shape, dtype=complex)
+
+        for i in range(self.My):
+            for j in range(self.Mx):
+                T_cur_arr[i,j] = 1.0+0j
+                Tarr_new[i,j] = np.prod(T_cur_arr)
+
+                T_cur_arr[i,j] = Tarr[i,j]
+
+        Tarr_new = Tarr_new[:, :, np.newaxis]
+        return Tarr_new
+
     def hpsi_lang_firsov(self, psi_collection):
         '''
             Computes: H_psi of the variational equations of motion
@@ -108,44 +135,46 @@ class eom:
 
         psi_collection_conj = np.conjugate(psi_collection)
 
-        # compute transfer integrals 
-        TD_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex), -1, axis=0)
-        TU_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex), 1, axis=0)
-        TR_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex), -1, axis=1)
-        TL_arr = np.roll(np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex), 1, axis=1)
+        '''
+        arrays of transfer integrals: all are (My,Mx) objects
+        '''
+        TD_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex) 
+        TU_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex)
+        TR_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex)
+        TL_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex)
+
+        '''
+        products of transfer integrals: in every entry (i,j), the (i,j)-th produc is missing
+        '''
+        TDr = self.compute_T_matrix_eom(TD_arr)
+        TUr = self.compute_T_matrix_eom(TU_arr)
+        TRr = self.compute_T_matrix_eom(TR_arr)
+        TLr = self.compute_T_matrix_eom(TL_arr)
         
-        TD = np.prod(TD_arr)
-        TU = np.prod(TU_arr)
-        TR = np.prod(TR_arr)
-        TL = np.prod(TL_arr)
-
-        H_psi = np.zeros((self.My,self.Mx,self.n), dtype=complex) # create a matrix for every rotor 
-
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
-        for i in range(self.My):
-            for j in range(self.Mx):
-                H_psi[i,j] = -self.B*np.fft.ifft(k2*np.fft.fft(psi_collection[i,j])) # kinetic energy term for every rotor
 
-                TDr = TD / TD_arr[i, j]
-                TUr = TU / TU_arr[i, j]
-                TRr = TR / TR_arr[i, j]
-                TLr = TL / TL_arr[i, j]
-
-                # for every (i,j) rotor wave function we need to add the calculated transfer integrals
-                H_psi[i,j] += - self.ty*( \
-                    np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*psi_collection[(i+1)%self.My,j] \
-                    + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*psi_collection[i-1,j])
-                H_psi[i,j] += - self.tx*( \
-                    np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*psi_collection[i,(j+1)%self.Mx] \
-                    + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*psi_collection[i,j-1])
-
-        # for the rotors adjacent to the electron add the potential terms
+        '''
+        rotor kinetic energy
+        '''
+        H_psi = -self.B*np.fft.ifft(k2*np.fft.fft(psi_collection)).astype(complex)
+        
+        '''
+        electron kinetic energy
+        '''
+        H_psi -= self.ty*( \
+                    np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*wfn_manip.get_next_y_rotor() \
+                    + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*wfn_manip.get_prev_y_rotor()) 
+        H_psi -= self.tx*( \
+                    np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*wfn_manip.get_next_x_rotor() \
+                    + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*wfn_manip.get_prev_x_rotor())
+        
+        '''
+        interaction terms
+        '''
         H_psi[self.My-1,0]         += self.V_0*np.cos(self.x-0.25*np.pi)*psi_collection[self.My-1,0]
         H_psi[self.My-1,self.Mx-1] += self.V_0*np.cos(self.x-0.75*np.pi)*psi_collection[self.My-1,self.Mx-1]
         H_psi[0,0]                 += self.V_0*np.cos(self.x+0.25*np.pi)*psi_collection[0,0]
         H_psi[0,self.Mx-1]         += self.V_0*np.cos(self.x+0.75*np.pi)*psi_collection[0,self.Mx-1]
-
-        H_psi = H_psi.reshape((self.M,self.n))
 
         return H_psi
 
@@ -171,11 +200,10 @@ class eom:
         '''
         H_psi = self.hpsi_lang_firsov(psi_collection)
 
-        psi_collection = psi_collection.reshape((self.M,self.n))
-        lagrange_param = np.sum(np.conjugate(psi_collection)*H_psi,axis=1).reshape(self.M,1)*psi_collection
+        lagrange_multiplier = np.einsum('ijk,ijk->ij', np.conjugate(psi_collection), H_psi)
         
-        H_psi = H_psi - lagrange_param
-        H_psi = H_psi.reshape((self.M*self.n,))
+        H_psi = H_psi - lagrange_multiplier[:, :, np.newaxis] * psi_collection
+        H_psi = H_psi.flatten()
 
         return H_psi
 
@@ -199,7 +227,7 @@ class eom:
             ----
         '''
         H_psi = self.hpsi_lang_firsov(psi_collection)
-        H_psi = H_psi.reshape((self.M*self.n,))
+        H_psi = H_psi.flatten()
 
         return H_psi
     
