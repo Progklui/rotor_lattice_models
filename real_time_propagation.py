@@ -60,7 +60,7 @@ import class_handle_wavefunctions as h_wavef
 '''
     MAIN PART:
 '''
-in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
+in_object = h_in.params(on_cluster=True) # object for handling inputs from command line
 params = in_object.get_parameters_real_time_prop(path+'/', arg=1)
 
 # create uniform initial wavefunction
