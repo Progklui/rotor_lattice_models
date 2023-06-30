@@ -94,27 +94,29 @@ class energy:
 
         psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
 
-        # tunneling energy
+        '''
+        tunneling energy
+        '''
         dE_dtx, dE_dty = self.deriv_dE_dt(psi)
         E_T = self.ty*dE_dty + self.tx*dE_dtx
 
-        # kinetic energy of rotors
         '''
-            outsource the computation of the second derivative 
+        rotor kinetic energy
         '''
-        k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
-        E_B = -self.B*np.sum(np.einsum('ijk,ijk->ij', np.conjugate(psi), np.fft.ifft(k2*np.fft.fft(psi))))  + 0j
-        #for k in range(self.My):
-        #    for p in range(self.Mx):
-        #        E_B -= self.B*np.sum(np.conjugate(psi[k,p])*np.fft.ifft(k2*np.fft.fft(psi[k,p])))
+        E_B = self.rotor_kinetic_energy(psi,psi)
 
-        # interaction energy
+        '''
+        interaction energy
+        '''
         E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*np.abs(psi[self.My-1,0])**2)
         E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi)*np.abs(psi[self.My-1,self.Mx-1])**2)
         E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi)*np.abs(psi[0,0])**2)
         E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi)*np.abs(psi[0,self.Mx-1])**2)
         
-        E = E_T + E_V + E_B # sum the individual energy contributions for total energy
+        '''
+        total energy
+        '''
+        E = E_T + E_V + E_B 
 
         E_out = np.array([E, E_T, E_B, E_V], dtype=complex)
         return E_out 
@@ -153,27 +155,73 @@ class energy:
         '''
         psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
         
-        # object for manipulating wavefunctions
-        wfn_manip = h_wavef.permute_rotors(psi)
+        '''
+        compute transfer integrals
+        '''
+        TD, TU, TR, TL = self.transfer_integrals(psi,psi)
 
-        psi_collection_conj = np.conjugate(psi)
+        '''
+        partial derivatives
+        '''
+        dE_dtx = -(np.exp(-1j*2*np.pi*self.qx/self.Mx)*TR + np.exp(+1j*2*np.pi*self.qx/self.Mx)*TL)
+        dE_dty = -(np.exp(-1j*2*np.pi*self.qy/self.My)*TD + np.exp(+1j*2*np.pi*self.qy/self.My)*TU)
 
-        # compute transfer integrals 
-        TD_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_y_rotor(), dtype=complex)
-        TU_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_y_rotor(), dtype=complex)
-        TR_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_next_x_rotor(), dtype=complex)
-        TL_arr = np.einsum('ijk,ijk->ij', psi_collection_conj, wfn_manip.get_prev_x_rotor(), dtype=complex)
+        return dE_dtx, dE_dty
+
+    def rotor_kinetic_energy(self, psi1, psi2):
+        '''
+            Computes: the projection of rotor kinetic energy between psi1 and psi2
+
+            ----
+            Inputs: 
+                psi1 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 1
+                psi2 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 2
+            ----
+
+            ----
+            Outputs:
+                E_B (scalar): rotor kinetic energy
+            ----
+        '''
+        psi1_conj = np.conjugate(psi1)
+
+        k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # second derivative matrix
+        E_B = -self.B*np.sum(np.einsum('ijk,ijk->ij', psi1_conj, np.fft.ifft(k2*np.fft.fft(psi2)))) + 0j
+
+        return E_B
+
+    def transfer_integrals(self, psi1, psi2):
+        '''
+            Computes: transfer integrals for two w.f. psi1 and psi2
+
+            ----
+            Inputs:
+                psi1 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 1
+                psi2 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 2
+            ----
+
+            ----
+            Outputs:
+                TD (scalar): product of all single rotor transfer integrals for jumping down
+                TU (scalar): product of all single rotor transfer integrals for jumping up 
+                TR (scalar): product of all single rotor transfer integrals for jumping right
+                TL (scalar): product of all single rotor transfer integrals for jumping left
+            ----
+        '''
+        psi1_conj = np.conjugate(psi1)
+        wfn2_manip = h_wavef.permute_rotors(psi2)
+
+        TD_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_y_rotor(), dtype=complex)
+        TU_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_y_rotor(), dtype=complex)
+        TR_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_x_rotor(), dtype=complex)
+        TL_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_x_rotor(), dtype=complex)
         
         TD = np.prod(TD_arr)
         TU = np.prod(TU_arr)
         TR = np.prod(TR_arr)
         TL = np.prod(TL_arr)
 
-        # partial derivatives
-        dE_dtx = -(np.exp(-1j*2*np.pi*self.qx/self.Mx)*TR + np.exp(+1j*2*np.pi*self.qx/self.Mx)*TL)
-        dE_dty = -(np.exp(-1j*2*np.pi*self.qy/self.My)*TD + np.exp(+1j*2*np.pi*self.qy/self.My)*TU)
-
-        return dE_dtx, dE_dty
+        return TD, TU, TR, TL
 
     def analytic_small_polaron_energy(self):
         '''
@@ -238,55 +286,84 @@ class coupling_of_states:
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
         self.dt  = float(params['dt'])
 
-    # calculate matrix element <psi1|H|psi2>  
     def calc_hamiltonian_matrix_element(self, psi1, q1, psi2, q2): 
+        '''
+            Computes: matrix element <psi1|H|psi2> 
+
+            ----
+            Inputs: 
+                psi1 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 1
+                psi2 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 2
+                q1 (1-dimensional: (qx,qy)): momenta of psi1
+                q2 (1-dimensional: (qx,qy)): momenta of psi2
+            ----
+
+            ----
+            Outputs:
+                E = <psi1|H|psi2> (scalar): overlap with respect to full hamiltonian
+                E_T (scalar): overlap with respect to electron kinetic term
+                E_B (scalar): overlap with respect to rotor kinetic term
+                E_V (scalar): overlap with respect to interaction term
+            ----
+        '''
         psi1 = psi1.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
         psi2 = psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
       
         qx1 = q1[0]
         qy1 = q1[1]
 
-        qx2 = q2[0]
-        qy2 = q2[1]
+        psi1_conj = np.conjugate(psi1)
 
-        # compute all the transfer integrals
-        TD = 1 + 0j; TU = 1 + 0j; TR = 1 + 0j; TL = 1 + 0j
-        for k in range(self.My): 
-            for p in range(self.Mx):
-                TD = TD*np.sum(np.conjugate(psi1[k,p])*psi2[(k+1)%self.My,p])
-                TU = TU*np.sum(np.conjugate(psi1[k,p])*psi2[k-1,p])
-                
-                TR = TR*np.sum(np.conjugate(psi1[k,p])*psi2[k,(p+1)%self.Mx])
-                TL = TL*np.sum(np.conjugate(psi1[k,p])*psi2[k,p-1])
+        energy_object = energy(params=self.param_dict)
+
+        '''
+        compute transfer integrals and plane wave factors
+        '''
+        TD, TU, TR, TL = energy_object.transfer_integrals(psi1, psi2)
 
         t_fac_TD = np.exp(-1j*(2*np.pi/self.My)*qy1)
         t_fac_TU = np.exp(+1j*(2*np.pi/self.My)*qy1)
         t_fac_TR = np.exp(-1j*(2*np.pi/self.Mx)*qx1)
         t_fac_TL = np.exp(+1j*(2*np.pi/self.Mx)*qx1)
 
-        # tunneling energy
+        '''
+        electron kinetic energy
+        '''
         E_T = -self.ty*(t_fac_TD*TD + t_fac_TU*TU)\
             -self.tx*(t_fac_TR*TR + t_fac_TL*TL)
             
-        # kinetic energy of rotors
-        k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
-        E_B = 0+0j
-        for k in range(self.My):
-            for p in range(self.Mx):
-                E_B -= self.B*np.sum(np.conjugate(psi1[k,p])*np.fft.ifft(k2*np.fft.fft(psi2[k,p])))
+        '''
+        rotor kinetic energy
+        '''
+        E_B = energy_object.rotor_kinetic_energy(psi1,psi2)
 
-        # interaction energy
-        E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*np.conjugate(psi1[self.My-1,0])*psi2[self.My-1,0])
-        E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi)*np.conjugate(psi1[self.My-1,self.Mx-1])*psi2[self.My-1,self.Mx-1])
-        E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi)*np.conjugate(psi1[0,0])*psi2[0,0])
-        E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi)*np.conjugate(psi1[0,self.Mx-1])*psi2[0,self.Mx-1])
+        '''
+        interaction energy
+        '''
+        E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*psi1_conj[self.My-1,0]*psi2[self.My-1,0])
+        E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi)*psi1_conj[self.My-1,self.Mx-1]*psi2[self.My-1,self.Mx-1])
+        E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi)*psi1_conj[0,0]*psi2[0,0])
+        E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi)*psi1_conj[0,self.Mx-1]*psi2[0,self.Mx-1])
         
         E = E_T + E_V + E_B # sum the individual energy contributions for total energy
 
         return E, E_T, E_B, E_V
     
-    # calc overlap <psi1|H|psi2>
     def calc_overlap(self, psi1, psi2):
+        '''
+            Computes: overlap of psi1, psi2, i.e. <psi1|psi2>
+
+            ----
+            Inputs:
+                psi1 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 1
+                psi2 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 2
+            ----
+
+            ----
+            Outputs:
+                overlap (scalar): overlap matrix element 
+            ----
+        '''
         psi1 = psi1.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
         psi2 = psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
 
@@ -296,11 +373,33 @@ class coupling_of_states:
                 overlap *= np.sum(np.conjugate(psi1[k,p])*psi2[k,p])
         return overlap
     
-    # compute the matrices for the generalized eigenvalue problem
     def calc_hamiltonian(self, n_states, psi_arr, q_arr):
+        '''
+            Computes: hamilton and overlap matrix for the generalized eigenvalue problem
+
+            ----
+            Inputs:
+                n_states (int scalar): number of states to consider
+                psi_arr (list [] with n_states entries): list of psi's
+                q_arr (2-dimensional (n_states, 2)): plane wave momenta
+            ----
+
+            ----
+            Outputs:
+                h_eff (2-dimensional: (n_states,n_states)): hamilton matrix
+                s_ove (2-dimensional: (n_states,n_states)): overlap matrix
+            ----
+        '''
         h_eff = np.zeros((n_states,n_states), dtype=complex)
         s_ove = np.zeros((n_states,n_states), dtype=complex)
 
+        '''
+        loop over all psi_i and psi_j combinations
+
+        ----
+        Comment: could be simplified to just run over upper diagonal
+        ----
+        '''
         for i in range(n_states):
             for j in range(n_states):
                 psi1 = psi_arr[i]
@@ -317,8 +416,21 @@ class coupling_of_states:
 
         return h_eff, s_ove
 
-    # diagonalize the effective hamiltonian
     def diag_hamiltonian(self, hamiltonian, overlap_matrix):
+        '''
+            Computes: diagonalization of the effective hamiltonian, i.e. solves generalized e-val problem
+
+            ----
+            Inputs:
+                hamiltonian (2-dimensional: (n_states,n_states)): hamilton matrix
+                overlap_matrix (2-dimensional: (n_states,n_states)): overlap matrix
+            ----
+
+            ----
+            Outputs:
+
+            ----
+        '''
         e_vals1, e_vec1 = np.linalg.eigh(overlap_matrix)
         order = np.argsort(e_vals1)
         e_vec1 = e_vec1[:,order]

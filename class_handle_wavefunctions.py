@@ -710,13 +710,13 @@ class permute_rotors:
         self.psi = psi
 
     def get_next_y_rotor(self):
-        return np.roll(self.psi, 1, axis=0)
-    
-    def get_prev_y_rotor(self):
         return np.roll(self.psi, -1, axis=0)
     
+    def get_prev_y_rotor(self):
+        return np.roll(self.psi, 1, axis=0)
+    
     def get_next_x_rotor(self):
-        return np.roll(self.psi, 1, axis=1)
+        return np.roll(self.psi, -1, axis=1)
     
     def get_prev_x_rotor(self):
-        return np.roll(self.psi, -1, axis=1)
+        return np.roll(self.psi, 1, axis=1)

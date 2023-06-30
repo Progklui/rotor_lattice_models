@@ -151,11 +151,10 @@ class eom:
         TRr = self.compute_T_matrix_eom(TR_arr)
         TLr = self.compute_T_matrix_eom(TL_arr)
         
-        k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
-
         '''
         rotor kinetic energy
         '''
+        k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
         H_psi = -self.B*np.fft.ifft(k2*np.fft.fft(psi_collection)).astype(complex)
         
         '''
