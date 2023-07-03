@@ -559,7 +559,7 @@ class eom:
             sol = solve_ivp(func, [0,self.dt], psi_curr, method='RK45', rtol=1e-9, atol=1e-9) 
             psi_curr = sol.y.T[-1] # don't normalize result!?
             
-            # psi_curr = wfn_manip.normalize_wf(psi_curr, shape=(self.My*self.Mx*self.n))
+            psi_curr = wfn_manip.normalize_wf(psi_curr, shape=(self.My*self.Mx*self.n))
 
             psi_process = wfn_manip.reshape_three_dim(psi_curr)
 
