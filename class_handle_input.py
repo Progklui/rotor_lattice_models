@@ -264,6 +264,32 @@ class coupl_states:
         
         return folder_name, probs_file_name
     
+    def matrices_results_coupling_of_states(self, path_main):
+        V_0_array = np.array(self.param_calc_dict['V_0'], dtype=float)
+        V_min = np.min(V_0_array)
+        V_max = np.max(V_0_array)
+
+        folder_name = path_main+'/image_results/psi_rotors_2d_python_M_'+str(int(self.Mx*self.My))+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'+str(self.ty)\
+            +'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'/coupling_of_states/'
+        
+        try: os.makedirs(folder_name)
+        except FileExistsError: pass
+
+        heff_file_name = 'heff_2d_state_MRCI_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        s_overlap_file_name = 's_overlap_2d_state_MRCI_M_'+str(int(self.Mx*self.My))+'_Mx_'+str(self.Mx)+'_My_'+str(self.My)+'_B_'+str(self.B)+'_tx_'+str(self.tx)+'_ty_'\
+                +str(self.ty)+'_Vmin_'+str(V_min)+'_Vmax_'+str(V_max)+'_qx_'+str(self.qx)+'_qy_'+str(self.qy)\
+                +'_tol_'+str(self.tol)+'_dt_'+str(self.dt)+'_V0_'
+        
+        return folder_name, heff_file_name, s_overlap_file_name
+    
+    def store_matrices(self, V_0, h_eff, s_overlap, path_main):
+        folder_name, heff_file_name, s_overlap_file_name = self.matrices_results_coupling_of_states(path_main)
+        
+        np.savetxt(folder_name+heff_file_name+str(V_0)+'.out', (h_eff))
+        np.savetxt(folder_name+s_overlap_file_name+str(V_0)+'.out', (s_overlap))
+
     def store_energies(self, V_0, E, path_main):
         folder_name, energies_file_name = self.energy_results_coupling_of_states(path_main)
 

@@ -226,6 +226,82 @@ class configurations:
         plt.savefig(folder_name_plot+file_name_plot+str(V_0)+'.png', dpi=400, bbox_inches='tight')
         plt.close()
 
+    # plot polaron size for a specific potential - mesh on the grid
+    def plot_heff_matrix(self, matrix, V_0, params_wfs, path_main):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        #plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
+
+        fig = plt.figure()
+        plt.title(r'$V_0 =$'+str(V_0), fontsize=font_size)
+
+        pc = plt.pcolormesh(matrix[::-1,:])
+        cbar = fig.colorbar(pc)
+        cbar.ax.tick_params(labelsize=font_size, length=6)
+        cbar.set_label(label=r'$\hat{H}_{eff}$', size=font_size)
+        
+        chosen_Mx = matrix.shape[1]
+        chosen_My = matrix.shape[0]
+
+        plt.xlabel(r'states', fontsize=font_size)
+        plt.ylabel(r'states', fontsize=font_size)
+
+        plt.xticks([0.5, 1.5, 2.5, 3.5], 
+                   [r'FO', r'FD v.', r'FD H.', r'SP'], fontsize=font_size)
+        plt.yticks([0.5, 1.5, 2.5, 3.5], 
+                   [r'SP', r'FD h.', r'FD v.', r'FO'], fontsize=font_size)
+
+        plt.tick_params(axis='x', direction='in', length=6, labeltop=True, labelbottom=False, top=True)
+        plt.tick_params(axis='y', direction='in', length=6, right=True)
+        plt.tick_params(which='minor', axis='y', direction='in', right=True)
+
+        in_object_g = h_in.coupl_states(params_calc=self.param_dict, params_wfs=params_wfs)
+        folder_name_plot, file_name_plot_heff, file_name_plot_s_overlap = in_object_g.matrices_results_coupling_of_states(path_main)
+
+        plt.savefig(folder_name_plot+file_name_plot_heff+str(V_0)+'.png', dpi=400, bbox_inches='tight')
+        plt.close()
+
+    # plot polaron size for a specific potential - mesh on the grid
+    def plot_s_overlap_matrix(self, matrix, V_0, params_wfs, path_main):
+        A = 6
+        plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])
+        #plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+        #plt.rc('text.latex', preambler=r'\usepackage{textgreek}')
+        font_size = 18 
+
+        fig = plt.figure()
+        plt.title(r'$V_0 =$'+str(V_0), fontsize=font_size)
+
+        pc = plt.pcolormesh(matrix[::-1,:])
+        cbar = fig.colorbar(pc)
+        cbar.ax.tick_params(labelsize=font_size, length=6)
+        cbar.set_label(label=r'$\hat{S}$', size=font_size)
+        
+        chosen_Mx = matrix.shape[1]
+        chosen_My = matrix.shape[0]
+
+        plt.xlabel(r'states', fontsize=font_size)
+        plt.ylabel(r'states', fontsize=font_size)
+
+        plt.xticks([0.5, 1.5, 2.5, 3.5], 
+                   [r'FO', r'FD v.', r'FD H.', r'SP'], fontsize=font_size)
+        plt.yticks([0.5, 1.5, 2.5, 3.5], 
+                   [r'SP', r'FD h.', r'FD v.', r'FO'], fontsize=font_size)
+
+        plt.tick_params(axis='x', direction='in', length=6, labeltop=True, labelbottom=False, top=True)
+        plt.tick_params(axis='y', direction='in', length=6, right=True)
+        plt.tick_params(which='minor', axis='y', direction='in', right=True)
+
+        in_object_g = h_in.coupl_states(params_calc=self.param_dict, params_wfs=params_wfs)
+        folder_name_plot, file_name_plot_heff, file_name_plot_s_overlap = in_object_g.matrices_results_coupling_of_states(path_main)
+
+        plt.savefig(folder_name_plot+file_name_plot_s_overlap+str(V_0)+'.png', dpi=400, bbox_inches='tight')
+        plt.close()
+
     def plot_configuration(self, psi_rotors, V_0_pool, V_index, scan_dir, path_main):
         A = 6
         plt.rc('figure', figsize=[46.82 * .5**(.5 * A), 33.11 * .5**(.5 * A)])

@@ -23,6 +23,8 @@ sys.path.append(path)
 import class_energy as energy
 import class_handle_input as h_in
 
+import class_visualization as vis
+
 '''
     MAIN PART:
 '''
@@ -38,6 +40,8 @@ params_wf_files = in_object.get_parameters_imag_time_prop(path+'/', arg=2)
 
 in_object = h_in.coupl_states(params_calc=params_calc, params_wfs=params_wf_files)
 folder_name_res, mrci_energies_file_name = in_object.energy_results_coupling_of_states(path) 
+
+plot_object = vis.configurations(params=params_calc)
 
 V_0_array = np.array(params_calc['V_0'], dtype=float)
 n_states = params_wf_files['n_states']
@@ -61,6 +65,13 @@ for i in range(len(V_0_array)):
     
     # compute transition probs
     trans_probs = coupl_object.transition_probabilities(n_states, e_kets, s_overlap)
+
+    '''
+    store and plot hamiltonian and overlap matrices
+    '''
+    in_object.store_matrices(V_0, h_eff, s_overlap, path)
+    plot_object.plot_heff_matrix(h_eff.real, V_0, params_wf_files, path)
+    plot_object.plot_s_overlap_matrix(s_overlap.real, V_0, params_wf_files, path)
 
     # store energies and transition probs
     in_object.store_energies(V_0, e_vals, path)
