@@ -31,7 +31,7 @@ import class_mass_size as mass_size
 '''
     MAIN PART:
 '''
-in_object = h_in.params(on_cluster=False) # object for handling inputs from command line
+in_object = h_in.params(on_cluster=True) # object for handling inputs from command line
 params = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
 
 V_0_array = np.array(params['V_0'], dtype=float)
