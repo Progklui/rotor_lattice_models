@@ -67,6 +67,7 @@ scale = ty
 exc_number = params["excitation_no"]
 
 path_wavefunction = params['path']
+print(path+'/'+path_wavefunction)
 ferro_order = np.load(path+'/'+path_wavefunction)
 
 coupl_object = energy.coupling_of_states(params=params)
