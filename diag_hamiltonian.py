@@ -67,7 +67,7 @@ scale = ty
 exc_number = params["excitation_no"]
 
 path_wavefunction = params['path']
-ferro_order = np.load(path_wavefunction)
+ferro_order = np.load(path+'/'+path_wavefunction)
 
 coupl_object = energy.coupling_of_states(params=params)
 diag_object = diag_heff.diagonalization(params=params)
