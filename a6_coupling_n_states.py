@@ -24,6 +24,7 @@ import class_energy as energy
 import class_handle_input as h_in
 
 import class_visualization as vis
+import class_handle_wavefunctions as h_wavef
 
 '''
     MAIN PART:
@@ -37,6 +38,7 @@ params_calc = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
 print('\nParameters 2nd input file:')
 params_wf_files = in_object.get_parameters_imag_time_prop(path+'/', arg=2)
 
+wavefunc_object = h_wavef.wavefunc_operations(params=params_calc)
 
 in_object = h_in.coupl_states(params_calc=params_calc, params_wfs=params_wf_files)
 folder_name_res, mrci_energies_file_name = in_object.energy_results_coupling_of_states(path) 
@@ -57,6 +59,10 @@ for i in range(len(V_0_array)):
     print('\nV_0: ', V_0)
 
     psi_arr, q_arr = in_object.get_wavefunctions_per_interaction(path, V_0)
+
+    #psi_arr = wavefunc_object.phase_symmetrize_psi_list(psi_arr)
+
+    psi_arr = wavefunc_object.get_phase_of_psi_list(psi_arr)
 
     # compute and diagonalize the hamiltonian
     coupl_object.V_0 = V_0

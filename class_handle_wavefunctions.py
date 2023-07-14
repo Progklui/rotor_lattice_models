@@ -682,6 +682,148 @@ class wavefunc_operations:
 
         return psi_new
 
+    def get_phase_of_psi_list(self, psi_list):
+        psi_ferro_domain_v = psi_list[1]
+        psi_ferro_domain_h = psi_list[2]
+        psi_small_polaron = psi_list[3]
+
+        sign_left = np.sum(np.sign(psi_ferro_domain_v[:,0]))/self.n/self.My
+        sign_right = np.sum(np.sign(psi_ferro_domain_v[:,self.Mx-1]))/self.n/self.My
+
+        sign_up = np.sum(np.sign(psi_ferro_domain_h[0,:]))/self.n/self.My
+        sign_down = np.sum(np.sign(psi_ferro_domain_h[self.My-1,:]))/self.n/self.Mx
+        
+        sign_sp_lu = np.sum(np.sign(psi_small_polaron[0,0]))/self.n
+        sign_sp_ld = np.sum(np.sign(psi_small_polaron[self.My-1,0]))/self.n
+        sign_sp_ru = np.sum(np.sign(psi_small_polaron[0,self.Mx-1]))/self.n
+        sign_sp_rd = np.sum(np.sign(psi_small_polaron[self.My-1,self.Mx-1]))/self.n
+
+        print(sign_left, sign_right) 
+        print(sign_up, sign_down)       
+        print(sign_sp_ld, sign_sp_lu, sign_sp_rd, sign_sp_ru)   
+
+        psi_ferro_domain_v[:,0] = sign_left*psi_ferro_domain_v[:,0]
+        psi_ferro_domain_v[:,self.Mx-1] = sign_right*psi_ferro_domain_v[:,self.Mx-1]
+
+        psi_ferro_domain_h[0,:] = -psi_ferro_domain_h[0,:]
+
+        psi_arr = [psi_list[0], psi_ferro_domain_v, psi_ferro_domain_h, psi_small_polaron]
+
+        return psi_arr
+
+    def symm_ferro_domain_v(self, psi):
+        sign_left = np.sum(np.sign(psi[:,0]))/self.n/self.My
+        sign_right = np.sum(np.sign(psi[:,self.Mx-1]))/self.n/self.My
+
+        print(sign_left)
+        print(sign_right)
+
+        '''
+        make ++ combination as starting point
+        '''
+        psi[:,0] = sign_left*psi[:,0]
+        psi[:,self.Mx-1] = sign_right*psi[:,self.Mx-1]
+
+        '''
+        copy and multiply phase
+        '''
+        psi_pp = psi.copy()
+        psi_pm = psi.copy()
+
+        psi_pm[:,0] = -psi_pm[:,0]
+
+        return psi_pp, psi_pm
+
+    def symm_ferro_domain_h(self, psi):
+        sign_up = np.sum(np.sign(psi[0,:]))/self.n/self.My
+        sign_down = np.sum(np.sign(psi[self.My-1,:]))/self.n/self.My
+
+        print(sign_up)
+        print(sign_down)
+        
+        '''
+        make ++ combination as starting point
+        '''
+        psi[0,:] = sign_up*psi[0,:]
+        psi[self.My-1,:] = sign_down*psi[self.My-1,:]
+
+        '''
+        copy and multiply phase
+        '''
+        psi_pp = psi.copy()
+        psi_pm = psi.copy()
+
+        psi_pm[0,:] = -psi_pm[0,:]
+
+        return psi_pp, psi_pm
+
+    def symm_small_polaron(self, psi):
+        sign_sp_lu = np.sum(np.sign(psi[0,0]))/self.n
+        sign_sp_ld = np.sum(np.sign(psi[self.My-1,0]))/self.n
+        sign_sp_ru = np.sum(np.sign(psi[0,self.Mx-1]))/self.n
+        sign_sp_rd = np.sum(np.sign(psi[self.My-1,self.Mx-1]))/self.n
+
+        print(sign_sp_lu)
+        print(sign_sp_ld)
+        print(sign_sp_ru)
+        print(sign_sp_rd)
+
+        '''
+        make ++++ combination
+        '''
+        psi[0,0] = sign_sp_lu*psi[0,0]
+        psi[self.My-1,0] = sign_sp_ld*psi[self.My-1,0]
+        psi[0,self.Mx-1] = sign_sp_ru*psi[0,self.Mx-1]
+        psi[self.My-1,self.Mx-1] = sign_sp_rd*psi[self.My-1,self.Mx-1]
+
+        '''
+        create phase combinations
+        '''
+        psi_pppp = psi.copy()
+
+        psi_mppp = psi.copy()
+        psi_pmpp = psi.copy()
+        psi_ppmp = psi.copy()
+        psi_pppm = psi.copy()
+
+        psi_ppmm = psi.copy()
+        psi_pmpm = psi.copy()
+        psi_pmmp = psi.copy()
+
+        psi_mppp[0,0] = -psi_mppp[0,0]
+        psi_pmpp[self.My-1,0] = -psi_pmpp[self.My-1,0]
+        psi_ppmp[0,self.Mx-1] = -psi_ppmp[0,self.Mx-1]
+        psi_pppm[self.My-1,self.Mx-1] = -psi_pppm[self.My-1,self.Mx-1]
+
+        psi_ppmm[self.My-1,0] = -psi_ppmm[self.My-1,0]
+        psi_ppmm[self.My-1,self.Mx-1] = -psi_ppmm[self.My-1,self.Mx-1]
+
+        psi_pmpm[self.My-1,0] = -psi_pmpm[self.My-1,0]
+        psi_pmpm[0,0] = -psi_pmpm[0,0]
+
+        psi_pmmp[self.My-1,0] = -psi_pmmp[self.My-1,0]
+        psi_pmmp[0,self.Mx-1] = -psi_pmmp[0,self.Mx-1]
+
+        psi_sp_list = [psi_pppp, psi_mppp, psi_pmpp, psi_ppmp, psi_pppm, psi_ppmm, psi_pmpm, psi_pmmp]
+        return psi_sp_list 
+
+
+    def phase_symmetrize_psi_list(self, psi_list):
+        psi_ferro_order = psi_list[0]
+        psi_ferro_domain_v = psi_list[1]
+        psi_ferro_domain_h = psi_list[2]
+        psi_small_polaron = psi_list[3]
+
+        fd_v_pp, fd_v_pm = self.symm_ferro_domain_v(psi_ferro_domain_v)
+        fd_h_pp, fd_h_pm = self.symm_ferro_domain_h(psi_ferro_domain_h)
+
+        sp_list = self.symm_small_polaron(psi_small_polaron)
+
+        psi_list_new = [psi_ferro_order, fd_v_pp, fd_v_pm, fd_h_pp, fd_h_pm] + sp_list
+
+        return psi_list_new
+
+
 class permute_rotors:
     ''' Class for moving the rotors in the different directions
         ----

@@ -290,6 +290,28 @@ class coupl_states:
         np.savetxt(folder_name+heff_file_name+str(V_0)+'.out', (h_eff))
         np.savetxt(folder_name+s_overlap_file_name+str(V_0)+'.out', (s_overlap))
 
+    def store_matrices_during_computation(self, V_0, E_list, S_list, path_main):
+        folder_name, heff_file_name, s_overlap_file_name = self.matrices_results_coupling_of_states(path_main)
+
+        heff_file_name = heff_file_name+str(V_0)+'_during_comp.out'
+        s_overlap_file_name = s_overlap_file_name+str(V_0)+'_during_comp.out'
+
+        with open(folder_name+heff_file_name, 'a') as h_eff_file:
+            write_string = ''
+            for i in range(len(E_list)):
+                write_string += str(E_list[i])+' '
+            write_string += '\n'
+
+            h_eff_file.write(write_string)
+
+        with open(folder_name+s_overlap_file_name, 'a') as s_file:
+            write_string = ''
+            for i in range(len(S_list)):
+                write_string += str(S_list[i])+' '
+            write_string += '\n'
+
+            s_file.write(write_string)
+
     def store_energies(self, V_0, E, path_main):
         folder_name, energies_file_name = self.energy_results_coupling_of_states(path_main)
 

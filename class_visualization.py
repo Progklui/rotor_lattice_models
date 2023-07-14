@@ -288,9 +288,9 @@ class configurations:
         plt.ylabel(r'states', fontsize=font_size)
 
         plt.xticks([0.5, 1.5, 2.5, 3.5], 
-                   [r'FO', r'FD v.', r'FD H.', r'SP'], fontsize=font_size)
+                    [r'FO', r'FD v.', r'FD H.', r'SP'], fontsize=font_size)
         plt.yticks([0.5, 1.5, 2.5, 3.5], 
-                   [r'SP', r'FD h.', r'FD v.', r'FO'], fontsize=font_size)
+                    [r'SP', r'FD h.', r'FD v.', r'FO'], fontsize=font_size)
 
         plt.tick_params(axis='x', direction='in', length=6, labeltop=True, labelbottom=False, top=True)
         plt.tick_params(axis='y', direction='in', length=6, right=True)

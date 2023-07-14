@@ -7,6 +7,7 @@ path = os.path.dirname(__file__)
 sys.path.append(path)
 
 import class_handle_wavefunctions as h_wavef
+import class_handle_input as h_in
 
 class energy:
     ''' Class for computing the energy of a given wavefunction
@@ -185,14 +186,64 @@ class energy:
         '''
         psi1_conj = np.conjugate(psi1)
 
+        #prod_arr = np.zeros((self.My,self.Mx), dtype=complex)
+        #for i in range(self.My):
+        #    for j in range(self.Mx):
+        #        prod_arr[i,j] = self.prod_excl_i_jth_rotor(psi1, psi2, i, j)
+
+        prod_arr = np.prod(np.einsum('ijk,ijk->ij', psi1_conj, psi2))/np.einsum('ijk,ijk->ij', psi1_conj, psi2)
+        
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # second derivative matrix
-        E_B = -self.B*np.sum(np.einsum('ijk,ijk->ij', psi1_conj, np.fft.ifft(k2*np.fft.fft(psi2)))) + 0j
+
+        single_rotor_deriv_sp = np.einsum('ijk,ijk->ij', psi1_conj, np.fft.ifft(k2*np.fft.fft(psi2)))
+        sum_elements = np.einsum('ij,ij->ij', single_rotor_deriv_sp, prod_arr)
+
+        E_B = -self.B*np.sum(sum_elements) + 0j
 
         return E_B
 
+    def prod_excl_i_jth_rotor(self, psi1, psi2, i, j):
+        psi1c = psi1.copy()
+        psi2c = psi2.copy()
+        psi1c[i,j,:] = self.n**(-0.5)*np.ones((self.n,), dtype=complex)
+        psi2c[i,j,:] = self.n**(-0.5)*np.ones((self.n,), dtype=complex)
+
+        psi1c_conj = np.conjugate(psi1c)
+
+        prod = np.prod(np.einsum('ijk,ijk->ij', psi1c_conj, psi2c)) #/np.sum(psi1_conj[i,j]*psi2[i,j])
+        return prod
+    
+    def transfer_matrices(self, psi1, psi2):
+        '''
+            Computes: transfer matrices for two w.f. psi1 and psi2
+
+            ----
+            Inputs:
+                psi1 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 1
+                psi2 (3-dimensional: (My,Mx,n), dtype=complex): rotor wavefunction 2
+            ----
+
+            ----
+            Outputs:
+                TD_arr (2-dimensional: (My,Mx)): products in matrix form of all single rotor transfer integrals for jumping down
+                TU_arr (2-dimensional: (My,Mx)): products in matrix form of all single rotor transfer integrals for jumping up 
+                TR_arr (2-dimensional: (My,Mx)): products in matrix form of all single rotor transfer integrals for jumping right
+                TL_arr (2-dimensional: (My,Mx)): products in matrix form of all single rotor transfer integrals for jumping left
+            ----
+        '''
+        psi1_conj = np.conjugate(psi1)
+        wfn2_manip = h_wavef.permute_rotors(psi2)
+
+        TD_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_y_rotor(), dtype=complex)
+        TU_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_y_rotor(), dtype=complex)
+        TR_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_x_rotor(), dtype=complex)
+        TL_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_x_rotor(), dtype=complex)
+
+        return TD_arr, TU_arr, TR_arr, TL_arr
+    
     def transfer_integrals(self, psi1, psi2):
         '''
-            Computes: transfer integrals for two w.f. psi1 and psi2
+            Computes: product of transfer integrals for two w.f. psi1 and psi2
 
             ----
             Inputs:
@@ -211,10 +262,7 @@ class energy:
         psi1_conj = np.conjugate(psi1)
         wfn2_manip = h_wavef.permute_rotors(psi2)
 
-        TD_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_y_rotor(), dtype=complex)
-        TU_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_y_rotor(), dtype=complex)
-        TR_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_x_rotor(), dtype=complex)
-        TL_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_x_rotor(), dtype=complex)
+        TD_arr, TU_arr, TR_arr, TL_arr = self.transfer_matrices(psi1, psi2)
         
         TD = np.prod(TD_arr)
         TU = np.prod(TU_arr)
@@ -222,7 +270,7 @@ class energy:
         TL = np.prod(TL_arr)
 
         return TD, TU, TR, TL
-
+    
     def analytic_small_polaron_energy(self):
         '''
             NOTE: the evaluation of the wavefunctions doesn't work for very large values of mathieu_param, i.e. for small B's there are problems!
@@ -286,6 +334,8 @@ class coupling_of_states:
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
         self.dt  = float(params['dt'])
 
+    
+
     def calc_hamiltonian_matrix_element(self, psi1, q1, psi2, q2): 
         '''
             Computes: matrix element <psi1|H|psi2> 
@@ -340,10 +390,10 @@ class coupling_of_states:
         '''
         interaction energy
         '''
-        E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*psi1_conj[self.My-1,0]*psi2[self.My-1,0])
-        E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi)*psi1_conj[self.My-1,self.Mx-1]*psi2[self.My-1,self.Mx-1])
-        E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi)*psi1_conj[0,0]*psi2[0,0])
-        E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi)*psi1_conj[0,self.Mx-1]*psi2[0,self.Mx-1])
+        E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi)*psi1_conj[self.My-1,0]*psi2[self.My-1,0])*energy_object.prod_excl_i_jth_rotor(psi1, psi2, self.My-1, 0)
+        E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi)*psi1_conj[self.My-1,self.Mx-1]*psi2[self.My-1,self.Mx-1])*energy_object.prod_excl_i_jth_rotor(psi1, psi2, self.My-1, self.Mx-1)
+        E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi)*psi1_conj[0,0]*psi2[0,0])*energy_object.prod_excl_i_jth_rotor(psi1, psi2, 0, 0)
+        E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi)*psi1_conj[0,self.Mx-1]*psi2[0,self.Mx-1])*energy_object.prod_excl_i_jth_rotor(psi1, psi2, 0, self.Mx-1)
         
         E = E_T + E_V + E_B # sum the individual energy contributions for total energy
 
@@ -367,10 +417,12 @@ class coupling_of_states:
         psi1 = psi1.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
         psi2 = psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
 
-        overlap = 1 + 0j
-        for k in range(self.My): 
-            for p in range(self.Mx):
-                overlap *= np.sum(np.conjugate(psi1[k,p])*psi2[k,p])
+        #overlap = 1 + 0j
+        #for k in range(self.My): 
+        #    for p in range(self.Mx):
+        #        overlap *= np.sum(np.conjugate(psi1[k,p])*psi2[k,p])
+
+        overlap = np.prod(np.einsum('ijk,ijk->ij', np.conjugate(psi1), psi2))
         return overlap
     
     def calc_hamiltonian(self, n_states, psi_arr, q_arr):
@@ -393,6 +445,8 @@ class coupling_of_states:
         h_eff = np.zeros((n_states,n_states), dtype=complex)
         s_ove = np.zeros((n_states,n_states), dtype=complex)
 
+        in_object = h_in.coupl_states(params_calc=self.param_dict, params_wfs=self.param_dict)
+
         '''
         loop over all psi_i and psi_j combinations
 
@@ -401,6 +455,8 @@ class coupling_of_states:
         ----
         '''
         for i in range(n_states):
+            E_list = np.zeros(n_states, dtype=complex)
+            S_list = np.zeros(n_states, dtype=complex)
             for j in range(n_states):
                 psi1 = psi_arr[i]
                 psi2 = psi_arr[j]
@@ -413,6 +469,12 @@ class coupling_of_states:
                 
                 h_eff[i,j] = E12
                 s_ove[i,j] = overlap_12
+
+                E_list[j] = E12
+                S_list[j] = overlap_12
+
+            in_object.n_states = n_states
+            in_object.store_matrices_during_computation(self.V_0, E_list, S_list, path)
 
         return h_eff, s_ove
 
