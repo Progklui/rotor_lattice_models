@@ -54,11 +54,6 @@ in_object = h_in.params(on_cluster=True) # object for handling inputs from comma
 print('\nParameters 1st input file:')
 params = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
 
-print('\nParameters 2nd input file:')
-params_wf_files = in_object.get_parameters_imag_time_prop(path+'/', arg=2)
-
-print(' ')
-
 Mx = params["Mx"]
 My = params["My"]
 
@@ -71,7 +66,7 @@ scale = ty
 
 exc_number = params["excitation_no"]
 
-path_wavefunction = params_wf_files['path']
+path_wavefunction = params['path']
 ferro_order = np.load(path_wavefunction)
 
 coupl_object = energy.coupling_of_states(params=params)
