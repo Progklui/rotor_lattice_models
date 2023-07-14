@@ -73,11 +73,11 @@ ferro_order = np.load(path+'/'+path_wavefunction)
 coupl_object = energy.coupling_of_states(params=params)
 diag_object = diag_heff.diagonalization(params=params)
 
-run_number = 3
+run_number = 200
 
 new_ferro_gs = ferro_order.copy()
 overlap_arr = np.zeros(run_number, dtype=complex)
-gs_energ_arr = np.zeros(run_number, dtype=complex)
+#gs_energ_arr = np.zeros(run_number, dtype=complex)
 for t in range(run_number):
     new_ferro_gs_next = new_ferro_gs.copy()
     energy_exc_states, psi_exc_states = diag_object.diag_h_eff(new_ferro_gs_next)
@@ -87,10 +87,9 @@ for t in range(run_number):
             new_ferro_gs[i,j] = set_phase(psi_exc_states[i,j,0], n)
             #new_ferro_gs[i,j] = set_phase(new_ferro_gs[i,j], n) #np.sign(np.sum((1/(n)**0.5)*new_ferro_gs[i,j]))*new_ferro_gs[i,j]
 
-    gs_energ_arr[t] = energy_exc_states[0,0,0]
+    #gs_energ_arr[t] = energy_exc_states[0,0,0]
     overlap_arr[t] = coupl_object.calc_overlap(new_ferro_gs, new_ferro_gs_next)
     print('Iter =', t, ', Overlap =', overlap_arr[t])
-
 
 psi_arr = []
 psi_arr.append(new_ferro_gs)
