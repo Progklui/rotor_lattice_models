@@ -57,9 +57,15 @@ class diagonalization:
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
 
     def second_derivative_mat(self):
+        '''
+            Computes: second derivative operator on fourier grid
+        '''
         k1 = 1j*np.fft.ifftshift(np.arange(-self.n/2,self.n/2))
         
-        k2 = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # make second derivative matrix
+        '''
+        second derivative matrix
+        '''
+        k2 = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 
         K2 = np.diag(k2)
 
         four_matrix = scipy.linalg.dft(self.n)
@@ -79,9 +85,50 @@ class diagonalization:
         return y_theory
 
     def projector(self, psi, i1, j1,  i2, j2):
+        '''
+            Computes: outer product of rotor (i1,j1) with rotor (i2,j2)
+        '''
         return np.outer(psi[i1,j1], psi[i2,j2])
     
+    def lagrange_multiplier(self, psi, H_psi):
+        '''
+            Computes: Lagrange Multiplier for wavefunction psi
+
+            ----
+            Inputs:
+                psi (1-dimensional: (n), dtype=complex): wavefunction for a selected rotor
+                H_psi (2-dimensional: (n,n), dtype=complex): eff. Hamiltonian projected out of rotor psi
+            ----
+
+            ----
+            Outputs:
+                lag_mul (2-dimensional: (n,n), dtype=complex): lagrange multiplier matrix 
+            ----
+        '''
+        psi_conj = np.conjugate(psi)
+
+        lag_mul = np.diag(np.einsum('n,nn->n', psi_conj, H_psi))
+
+        return lag_mul
+    
     def diag_h_eff(self, psi):
+        '''
+            Computes: effective Hamiltonian and diagonalizes it for every rotor
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction on which the eff. Hamiltonian depends
+            ----
+
+            ----
+            Outputs:
+                energy_exc_states (3-dimensional: (My,Mx,exc_states)): for every rotor and exc. number the resp. energy
+                psi_exc_states (4-dimensional: (My,Mx,exc_states,n)): for every rotor and exc. number the respective wavefunction
+                                                                    in the last dimension
+            ----
+        '''
+        psi = psi.copy()
+
         '''
         objects to store the excitation wavefunctions and e-vals
         '''
@@ -91,16 +138,18 @@ class diagonalization:
         energy_object = energy.energy(params=self.param_dict)
         sec_derivative = self.second_derivative_mat() 
 
+        '''
+        transfer integrals and matrices
+        '''
         TD, TU, TR, TL = energy_object.transfer_integrals(psi, psi)
         TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
 
         '''
-        for every rotor compute H_psi, diagonalize it to get wave function and return result
+        1. Compute H_psi for every rotor
+        2. Diagonalize H_psi -> wave function and spectrum
         '''
         for i in range(self.My):
             for j in range(self.Mx):
-                #print('Rotor ', i, j)
-
                 ''' 
                 rotor kinetic term
                 '''
@@ -130,29 +179,12 @@ class diagonalization:
                     H_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))
                 elif i == 0 and j == (self.Mx-1): 
                     H_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))
-
-                energ_object = energy.energy(params=self.param_dict)
-                energ_object.qx = 0
-                energ_object.qy = 0
-
-                e_psi = energ_object.calc_energy(psi)[0]
-
-                #H_psi -= np.diag(e_psi*np.ones(self.n, dtype=complex))
-
-                mul_left = np.diag(np.ones(self.n, dtype=complex)) - np.outer(psi[i,j], psi[i,j])
-                #H_psi = mul_left@H_psi
-
-                lagrange_multiplier = np.conjugate(psi[i,j])*H_psi #@psi[i,j]  # np.einsum('ijk,ijk->ij', np.conjugate(psi), H_psi)
-                #print(lagrange_multiplier)
-                sign = np.sum((1/(self.n)**0.5)*psi)
-                sign = sign/np.abs(sign)
-                #return np.conjugate(sign)*psi
-                #print(sign)
-                lag_mul = np.diag(np.einsum('n,nn->n',np.conjugate(psi[i,j].T),H_psi))
-                #print(lagrange_multiplier.shape)
-                #print(H_psi.shape)
-                #print(lag_mul.shape)
-                #H_psi -= lagrange_multiplier #e_psi*np.ones(self.n, dtype=complex) #lagrange_multiplier #* np.einsum('n,nn->n', lag_mul, np.outer(psi[i,j],psi[i,j])) #np.diag(psi[i,j]) #e_psi*(1/self.n**0.5)*np.diag(np.ones(self.n, dtype=complex)) #e_psi*np.outer(psi[i,j], psi[i,j]) #np.diag(lagrange_multiplier*np.ones(self.n, dtype=complex)) # [:, :, np.newaxis] * psi_collection
+                
+                '''
+                Lagrange Multiplier
+                '''
+                lag_mul = self.lagrange_multiplier(psi[i,j], H_psi)
+                H_psi -= lag_mul
 
                 '''
                 diagonalization of h_eff
@@ -161,8 +193,6 @@ class diagonalization:
                 order = np.argsort(eigen_values)
                 eigen_vector = eigen_vector[:,order]
                 eigen_values = eigen_values[order]
-
-                #print('e-vals =', eigen_values[0:self.exc_states])
 
                 for n in range(self.exc_states):
                     psi_exc_n = self.get_state_i(eigen_vector, n)
@@ -173,6 +203,39 @@ class diagonalization:
         return energy_exc_states, psi_exc_states
     
 class multi_ref_ci:
+    ''' Class to prepare the multi ref ci states
+
+        ----
+        Inputs:
+            params: dictionary with all calculation parameters
+        ----
+
+        Important variables (mainly for ourput/debugging):
+        
+        ----
+        Calculation parameters and class variables:
+            n (int): length of angle grid
+            Mx (int): number of rotor lattice in x direction
+            My (int): number of rotor lattice in y direction
+
+            tx (float): tunneling ratio in x direction
+            ty (float): tunneling ratio in y direction
+            V_0 (float): coupling strength of interaction term
+            B (float): rotational constant
+            qx (int): wavenumber of electron in x direction
+            qy (int): wavenumber of electron in y direction
+
+            exc_states (int): exc_states-1 gives the number of excitated states to consider on every rotor
+        ----
+
+        but most importantly:
+
+        ----
+        Methods:
+            
+        ----
+    '''
+
     def __init__(self, params):
         self.param_dict = params
         self.Mx  = int(params['Mx'])

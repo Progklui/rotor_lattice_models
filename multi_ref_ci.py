@@ -16,6 +16,12 @@ import class_handle_input as h_in
 import class_visualization as vis
 import class_handle_wavefunctions as h_wavef
 
+def print_number_of_states(calc_n_states, params):
+    single_exc_number = (params['excitation_no']-1)*params['My']*params['My']
+    double_exc_number = (params['excitation_no']-1)**2*(params['My']*params['My']*(params['My']*params['My']-1)/2)
+    print("No. of states =", calc_n_states, \
+        ", No. in theory = 4*(1 +", single_exc_number, "+", double_exc_number, ") =", 4*(1+single_exc_number+double_exc_number))
+
 def print_ref_energies(coupl_object, q, ferro_order, ferro_domain_v, ferro_domain_h, small_polaron):
     e_order = coupl_object.calc_hamiltonian_matrix_element(ferro_order, q, ferro_order, q)[0]
     e_d_v = coupl_object.calc_hamiltonian_matrix_element(ferro_domain_v, q, ferro_domain_v, q)[0]
@@ -114,10 +120,7 @@ psi_arr = mult_ref_object.append_double_excitations(new_small_polaron, psi_arr, 
 n_states = len(psi_arr)
 q_arr = np.zeros((n_states,2), dtype=complex)
 
-single_exc_number = (params['excitation_no']-1)*params['My']*params['My']
-double_exc_number = (params['excitation_no']-1)**2*(params['My']*params['My']*(params['My']*params['My']-1)/2)
-print("No. of states =", n_states, \
-      ", No. in theory = 4*(1 +", single_exc_number, "+", double_exc_number, ") =", 4*(1+single_exc_number+double_exc_number))
+print_number_of_states(n_states, params)
 
 '''
 Compute the effective Hamiltonian
