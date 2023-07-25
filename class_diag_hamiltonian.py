@@ -6,6 +6,7 @@ import os, sys, gc
 path = os.path.dirname(__file__) 
 sys.path.append(path)
 
+import class_equations_of_motion as eom 
 import class_handle_wavefunctions as h_wavef
 import class_energy as energy
 
@@ -90,7 +91,7 @@ class diagonalization:
         '''
         return np.outer(psi[i1,j1], psi[i2,j2])
     
-    def lagrange_multiplier(self, psi, H_psi):
+    def lagrange_multiplier(self, psi, i, j, H_psi):
         '''
             Computes: Lagrange Multiplier for wavefunction psi
 
@@ -107,7 +108,15 @@ class diagonalization:
         '''
         psi_conj = np.conjugate(psi)
 
-        lag_mul = np.diag(np.einsum('n,nn->n', psi_conj, H_psi))
+        eom_object = eom.eom(params=self.param_dict)
+        eom_object.V_0 = self.V_0 
+
+        H_psi = eom_object.hpsi_lang_firsov(psi)
+        lag_mul = np.einsum('ijk,ijk->ij', psi_conj, H_psi)
+
+        lag_mul = np.diag(lag_mul[i,j]*np.ones(self.n, dtype=complex))
+        
+        #lag_mul = np.diag(np.einsum('n,nn->n', psi_conj, H_psi))
 
         return lag_mul
     
@@ -159,9 +168,9 @@ class diagonalization:
                 transfer terms
                 '''
                 TDr = TD / (TD_arr[i, j]*TD_arr[i-1, j])
-                TUr = TU / (TU_arr[i, j]*TD_arr[(i+1)%self.My, j])
-                TRr = TR / (TR_arr[i, j]*TD_arr[i, j-1])
-                TLr = TL / (TL_arr[i, j]*TD_arr[i, (j+1)%self.Mx])
+                TUr = TU / (TU_arr[i, j]*TU_arr[(i+1)%self.My, j])
+                TRr = TR / (TR_arr[i, j]*TR_arr[i, j-1])
+                TLr = TL / (TL_arr[i, j]*TL_arr[i, (j+1)%self.Mx])
 
                 H_psi -= self.ty*(np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*self.projector(psi, (i+1)%self.My, j, i-1, j)\
                             + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*self.projector(psi, i-1, j, (i+1)%self.My, j))
@@ -183,8 +192,8 @@ class diagonalization:
                 '''
                 Lagrange Multiplier
                 '''
-                lag_mul = self.lagrange_multiplier(psi[i,j], H_psi)
-                H_psi -= lag_mul
+                lag_mul = self.lagrange_multiplier(psi, i, j, H_psi)
+                #H_psi -= lag_mul
 
                 '''
                 diagonalization of h_eff

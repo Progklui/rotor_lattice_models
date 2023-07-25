@@ -49,7 +49,13 @@ def plot_ref_densities(params, ferro_order, ferro_domain_v, ferro_domain_h, smal
     plt.show()
     plt.pcolormesh(small_polaron_sigma)
     plt.show()
-    
+
+def plot_energies_during_scf(e_fo, e_fdv, e_fdh, e_sp):
+    plt.plot(e_fo.real); plt.show()
+    plt.plot(e_fdv.real); plt.show()
+    plt.plot(e_fdh.real); plt.show()
+    plt.plot(e_sp.real); plt.show() 
+
 in_object = h_in.params(on_cluster=True) # object for handling inputs from command line
 print('\nParameters input file:')
 params = in_object.get_parameters_imag_time_prop(path+'/', arg=1)
@@ -74,12 +80,13 @@ mult_ref_object = diag_heff.multi_ref_ci(params=params)
 q = np.array([params['qx'],params['qy']])
 
 print_ref_energies(coupl_object, q, ferro_order, ferro_domain_v, ferro_domain_h, small_polaron)
+plot_ref_densities(params, ferro_order, ferro_domain_v, ferro_domain_h, small_polaron)
 
 '''
 Create new Reference Ground States from the SCF method of diagonalizing eff. Hamiltonian
 '''
-iter_number = 5
-mult_ref_object.set_phase_bool = False
+iter_number = 50
+mult_ref_object.set_phase_bool = True
 
 new_ferro_gs, conv_energ_gs_fo, overlap_arr_fo = mult_ref_object.creat_new_ref_state(iter_number, ferro_order, q)
 new_ferro_domain_v, conv_energ_gs_fdv, overlap_arr_fdv = mult_ref_object.creat_new_ref_state(iter_number, ferro_domain_v, q)
@@ -88,6 +95,7 @@ new_small_polaron, conv_energ_gs_sp, overlap_arr_sp = mult_ref_object.creat_new_
 
 print_ref_energies(coupl_object, q, new_ferro_gs, new_ferro_domain_v, new_ferro_domain_h, new_small_polaron)
 plot_ref_densities(params, new_ferro_gs, new_ferro_domain_v, new_ferro_domain_h, new_small_polaron)
+plot_energies_during_scf(conv_energ_gs_fo, conv_energ_gs_fdv, conv_energ_gs_fdh, conv_energ_gs_sp)
 
 '''
 Diagonalize effective Hamiltonians to get excited states
