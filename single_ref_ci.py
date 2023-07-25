@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 
 import matplotlib.pyplot as plt
 import os, sys, csv, time
@@ -96,3 +97,22 @@ Compute the effective Hamiltonian
 '''
 h_eff, s_ove = coupl_object.calc_hamiltonian(n_states, psi_arr, q_arr)
 print("Finished calculation of Hamiltonian!")
+
+eigen_values, eigen_vector = scipy.linalg.eig(a=h_eff, b=s_ove) # diagonalize effective hamiltonian
+order = np.argsort(eigen_values)
+eigen_vector = eigen_vector[:,order]
+eigen_values = eigen_values[order]
+
+print('min e-val =', np.min(eigen_values))
+
+plt.scatter(np.arange(len(eigen_values)), eigen_values, s=1)
+plt.show() 
+
+size_to_show = 400
+
+fig = plt.figure()
+pc = plt.pcolormesh(h_eff[0:size_to_show,0:size_to_show][::-1].real)
+cbar = fig.colorbar(pc)
+cbar.ax.tick_params(labelsize=20, length=6)
+cbar.set_label(label=r'$\hat{H}_{eff}$', size=20)
+plt.show()
