@@ -184,18 +184,21 @@ class energy:
                 E_B (scalar): rotor kinetic energy
             ----
         '''
-        psi1_conj = np.conjugate(psi1)
+        psi1c = psi1.copy()
+        psi2c = psi2.copy()
+
+        psi1_conj = np.conjugate(psi1c)
 
         #prod_arr = np.zeros((self.My,self.Mx), dtype=complex)
         #for i in range(self.My):
         #    for j in range(self.Mx):
         #        prod_arr[i,j] = self.prod_excl_i_jth_rotor(psi1, psi2, i, j)
 
-        prod_arr = np.prod(np.einsum('ijk,ijk->ij', psi1_conj, psi2))/np.einsum('ijk,ijk->ij', psi1_conj, psi2)
+        prod_arr = np.prod(np.einsum('ijk,ijk->ij', psi1_conj, psi2c))/np.einsum('ijk,ijk->ij', psi1_conj, psi2c)
         
         k2  = -np.append(np.arange(0,self.n/2+1),np.arange(-self.n/2+1,0))**2 # second derivative matrix
 
-        single_rotor_deriv_sp = np.einsum('ijk,ijk->ij', psi1_conj, np.fft.ifft(k2*np.fft.fft(psi2)))
+        single_rotor_deriv_sp = np.einsum('ijk,ijk->ij', psi1_conj, np.fft.ifft(k2*np.fft.fft(psi2c)))
         sum_elements = np.einsum('ij,ij->ij', single_rotor_deriv_sp, prod_arr)
 
         E_B = -self.B*np.sum(sum_elements) + 0j
@@ -205,6 +208,7 @@ class energy:
     def prod_excl_i_jth_rotor(self, psi1, psi2, i, j):
         psi1c = psi1.copy()
         psi2c = psi2.copy()
+
         psi1c[i,j,:] = self.n**(-0.5)*np.ones((self.n,), dtype=complex)
         psi2c[i,j,:] = self.n**(-0.5)*np.ones((self.n,), dtype=complex)
 
@@ -231,8 +235,11 @@ class energy:
                 TL_arr (2-dimensional: (My,Mx)): products in matrix form of all single rotor transfer integrals for jumping left
             ----
         '''
-        psi1_conj = np.conjugate(psi1)
-        wfn2_manip = h_wavef.permute_rotors(psi2)
+        psi1c = psi1.copy()
+        psi2c = psi2.copy()
+
+        psi1_conj = np.conjugate(psi1c)
+        wfn2_manip = h_wavef.permute_rotors(psi2c)
 
         TD_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_next_y_rotor(), dtype=complex)
         TU_arr = np.einsum('ijk,ijk->ij', psi1_conj, wfn2_manip.get_prev_y_rotor(), dtype=complex)
@@ -474,8 +481,9 @@ class coupling_of_states:
                 S_list[j] = overlap_12
 
             in_object.n_states = n_states
-            in_object.store_matrices_during_computation(self.V_0, E_list, S_list, path)
+            #in_object.store_matrices_during_computation(self.V_0, E_list, S_list, path)
 
+        in_object.store_matrices_at_end_of_computation(self.V_0, h_eff, s_ove, path)
         return h_eff, s_ove
 
     def diag_hamiltonian(self, hamiltonian, overlap_matrix):

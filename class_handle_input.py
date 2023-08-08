@@ -312,6 +312,20 @@ class coupl_states:
 
             s_file.write(write_string)
 
+    def store_matrices_at_end_of_computation(self, V_0, h_eff, s_ove, path_main):
+        folder_name, heff_file_name, s_overlap_file_name = self.matrices_results_coupling_of_states(path_main)
+
+        heff_file_name = heff_file_name+str(V_0)
+        s_overlap_file_name = s_overlap_file_name+str(V_0)
+
+        if os.path.isfile(folder_name+heff_file_name+'_during_comp.out'):
+            os.remove(folder_name+heff_file_name+'_during_comp.out')
+        if os.path.isfile(folder_name+s_overlap_file_name+'_during_comp.out'):
+            os.remove(folder_name+s_overlap_file_name+'_during_comp.out')
+
+        np.save(folder_name+heff_file_name, h_eff)
+        np.save(folder_name+s_overlap_file_name, s_ove)
+
     def store_energies(self, V_0, E, path_main):
         folder_name, energies_file_name = self.energy_results_coupling_of_states(path_main)
 

@@ -89,7 +89,7 @@ class diagonalization:
         '''
             Computes: outer product of rotor (i1,j1) with rotor (i2,j2)
         '''
-        return np.outer(psi[i1,j1], psi[i2,j2])
+        return psi[i1,j1,:][:, np.newaxis] * psi[i2,j2,:][np.newaxis, :]
     
     def lagrange_multiplier(self, psi, i, j, H_psi):
         '''
@@ -120,6 +120,78 @@ class diagonalization:
 
         return lag_mul
     
+    def single_rotor_eff_potential(self, psi, i, j):
+        '''
+            Computes: effective Hamiltonian for the i,j-th rotor
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction on which the eff. Hamiltonian depends
+                i (scalar, int): rotor index along My
+                j (scla)
+            ----
+
+            ----
+            Outputs:
+                energy_exc_states (3-dimensional: (My,Mx,exc_states)): for every rotor and exc. number the resp. energy
+                psi_exc_states (4-dimensional: (My,Mx,exc_states,n)): for every rotor and exc. number the respective wavefunction
+                                                                    in the last dimension
+            ----
+        '''
+        psi = psi.copy()
+
+        '''
+        objects to store the excitation wavefunctions and e-vals
+        '''
+        energy_object = energy.energy(params=self.param_dict)
+
+        '''
+        transfer integrals and matrices
+        '''
+        TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
+                
+        '''
+        transfer terms
+        '''
+        TDr = self.transfer_integrals(TD_arr, i, j, i-1, j) # TD / (TD_arr[i, j]*TD_arr[i-1, j])
+        TUr = self.transfer_integrals(TU_arr, i, j, (i+1)%self.My, j) # TU / (TU_arr[i, j]*TU_arr[(i+1)%self.My, j])
+        TRr = self.transfer_integrals(TR_arr, i, j, i, j-1) # TR / (TR_arr[i, j]*TR_arr[i, j-1])
+        TLr = self.transfer_integrals(TL_arr, i, j, i, (j+1)%self.Mx) # TL / (TL_arr[i, j]*TL_arr[i, (j+1)%self.Mx])
+
+        V_psi = -self.ty*(np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*self.projector(psi, (i+1)%self.My, j, i-1, j)\
+                    + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*self.projector(psi, i-1, j, (i+1)%self.My, j))
+        V_psi -= self.tx*(np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*self.projector(psi, i, (j+1)%self.Mx, i, j-1) \
+                    + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*self.projector(psi, i, j-1, i, (j+1)%self.Mx))
+
+        '''
+        interaction terms for right rotors
+        '''
+        if i == (self.My-1) and j == 0: 
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.25*np.pi))
+        elif i == (self.My-1) and j == (self.Mx-1): 
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.75*np.pi))
+        elif i == 0 and j == 0: 
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))
+        elif i == 0 and j == (self.Mx-1): 
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))
+                
+        '''
+        Lagrange Multiplier
+        '''
+        lag_mul = self.lagrange_multiplier(psi, i, j, V_psi)
+        #V_psi -= lag_mul
+
+        return V_psi
+    
+    def transfer_integrals(self, T_arr, i1, j1, i2, j2):
+        T_arr_new = T_arr.copy()
+
+        T_arr_new[i1,j1] = 1.0+0j
+        T_arr_new[i2,j2] = 1.0+0j
+
+        T = np.prod(T_arr_new)
+        return T
+
     def diag_h_eff(self, psi):
         '''
             Computes: effective Hamiltonian and diagonalizes it for every rotor
@@ -144,14 +216,7 @@ class diagonalization:
         psi_exc_states = np.zeros((self.My,self.Mx,self.exc_states,self.n), dtype=complex) 
         energy_exc_states = np.zeros((self.My,self.Mx,self.exc_states), dtype=complex)
 
-        energy_object = energy.energy(params=self.param_dict)
         sec_derivative = self.second_derivative_mat() 
-
-        '''
-        transfer integrals and matrices
-        '''
-        TD, TU, TR, TL = energy_object.transfer_integrals(psi, psi)
-        TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
 
         '''
         1. Compute H_psi for every rotor
@@ -164,31 +229,10 @@ class diagonalization:
                 '''
                 H_psi = -self.B*sec_derivative 
             
-                '''
-                transfer terms
-                '''
-                TDr = TD / (TD_arr[i, j]*TD_arr[i-1, j])
-                TUr = TU / (TU_arr[i, j]*TU_arr[(i+1)%self.My, j])
-                TRr = TR / (TR_arr[i, j]*TR_arr[i, j-1])
-                TLr = TL / (TL_arr[i, j]*TL_arr[i, (j+1)%self.Mx])
+                V_psi = self.single_rotor_eff_potential(psi, i, j)
 
-                H_psi -= self.ty*(np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*self.projector(psi, (i+1)%self.My, j, i-1, j)\
-                            + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*self.projector(psi, i-1, j, (i+1)%self.My, j))
-                H_psi -= self.tx*(np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*self.projector(psi, i, (j+1)%self.Mx, i, j-1) \
-                            + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*self.projector(psi, i, j-1, i, (j+1)%self.Mx))
+                H_psi += V_psi 
 
-                '''
-                interaction terms for right rotors
-                '''
-                if i == (self.My-1) and j == 0: 
-                    H_psi += np.diag(self.V_0*np.cos(self.x-0.25*np.pi))
-                elif i == (self.My-1) and j == (self.Mx-1): 
-                    H_psi += np.diag(self.V_0*np.cos(self.x-0.75*np.pi))
-                elif i == 0 and j == 0: 
-                    H_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))
-                elif i == 0 and j == (self.Mx-1): 
-                    H_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))
-                
                 '''
                 Lagrange Multiplier
                 '''
@@ -280,9 +324,9 @@ class multi_ref_ci:
 
         if self.set_phase_bool == True:
             sign = np.sum((1/self.n**0.5)*psi_man)
-            sign = sign/np.abs(sign)
+            sign = sign/np.abs(sign) 
 
-            psi_man = np.conjugate(sign)*psi_man
+            psi_man = np.sign(sign.real)*psi_man #np.conjugate(sign)*psi_man
 
         return psi_man
 
