@@ -89,7 +89,11 @@ class diagonalization:
         '''
             Computes: outer product of rotor (i1,j1) with rotor (i2,j2)
         '''
-        return psi[i1,j1,:][:, np.newaxis] * psi[i2,j2,:][np.newaxis, :]
+        psi_n = psi.copy() 
+
+        psi_n_conjugate = np.conjugate(psi_n)
+
+        return psi_n[i1,j1,:][:, np.newaxis] * psi_n_conjugate[i2,j2,:][np.newaxis, :]
     
     def lagrange_multiplier(self, psi, i, j, H_psi):
         '''
@@ -119,6 +123,34 @@ class diagonalization:
         #lag_mul = np.diag(np.einsum('n,nn->n', psi_conj, H_psi))
 
         return lag_mul
+    
+    def eff_individual_projector_terms(self, psi, i, j):
+        psi = psi.copy()
+
+        '''
+        objects to store the excitation wavefunctions and e-vals
+        '''
+        energy_object = energy.energy(params=self.param_dict)
+
+        '''
+        transfer integrals and matrices
+        '''
+        TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
+                
+        '''
+        transfer terms
+        '''
+        TDr = self.transfer_integrals(TD_arr, i, j, i-1, j) # TD / (TD_arr[i, j]*TD_arr[i-1, j])
+        TUr = self.transfer_integrals(TU_arr, i, j, (i+1)%self.My, j) # TU / (TU_arr[i, j]*TU_arr[(i+1)%self.My, j])
+        TRr = self.transfer_integrals(TR_arr, i, j, i, j-1) # TR / (TR_arr[i, j]*TR_arr[i, j-1])
+        TLr = self.transfer_integrals(TL_arr, i, j, i, (j+1)%self.Mx) # TL / (TL_arr[i, j]*TL_arr[i, (j+1)%self.Mx])
+
+        TDr_projector = np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*self.projector(psi, (i+1)%self.My, j, i-1, j)
+        TUr_projector = np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*self.projector(psi, i-1, j, (i+1)%self.My, j)
+        TRr_projector = np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*self.projector(psi, i, (j+1)%self.Mx, i, j-1)
+        TLr_projector = np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*self.projector(psi, i, j-1, i, (j+1)%self.Mx)
+
+        return TDr_projector, TUr_projector, TRr_projector, TLr_projector
     
     def single_rotor_eff_potential(self, psi, i, j):
         '''
