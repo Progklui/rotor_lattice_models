@@ -56,13 +56,33 @@ class diagonalization:
         self.exc_states = int(params['excitation_no'])
         self.n   = int(params['n'])
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.sigma_gaussian = 0 # set from outside - width of the gaussian
+
+    def first_derivative_mat(self):
+        '''
+            Computes: first derivative operator on fourier grid
+        '''
+
+        '''
+        first derivative matrix
+        '''
+        k1 = 1j*np.fft.ifftshift(np.arange(-self.n/2,self.n/2))
+        K1 = np.diag(k1)
+
+        four_matrix = scipy.linalg.dft(self.n)
+
+        '''
+        first deriv. operator
+        '''
+        first_derivative = (np.matmul(four_matrix.conj().transpose(), np.matmul(K1, four_matrix)))/self.n 
+
+        return first_derivative
 
     def second_derivative_mat(self):
         '''
             Computes: second derivative operator on fourier grid
         '''
-        k1 = 1j*np.fft.ifftshift(np.arange(-self.n/2,self.n/2))
-        
+ 
         '''
         second derivative matrix
         '''
@@ -152,9 +172,92 @@ class diagonalization:
 
         return TDr_projector, TUr_projector, TRr_projector, TLr_projector
     
+    def single_rotor_eff_fdv_bias_potential(self, psi, i, j):
+        '''
+            Computes: effective biased potential for the i,j-th domain wall rotor
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction on which the eff. Hamiltonian depends
+                i (scalar, int): rotor index along My
+                j (scla)
+            ----
+
+            ----
+            Outputs:
+                energy_exc_states (3-dimensional: (My,Mx,exc_states)): for every rotor and exc. number the resp. energy
+                psi_exc_states (4-dimensional: (My,Mx,exc_states,n)): for every rotor and exc. number the respective wavefunction
+                                                                    in the last dimension
+            ----
+        '''
+        psi = psi.copy()
+
+        '''
+        objects to store the excitation wavefunctions and e-vals
+        '''
+        energy_object = energy.energy(params=self.param_dict)
+
+        '''
+        gaussian centered around pi and normalize
+        '''
+        dx = self.x[1]-self.x[0]
+        w = 2*np.pi*np.fft.fftfreq(self.x.size, dx)
+        
+        gauss_pi = np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
+        norm = np.sum(np.abs(np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2)))**2)
+        gauss_pi = 1/(norm**0.5)*gauss_pi
+
+        '''
+        shift gaussian appropriately
+        '''
+        gauss_zero = np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
+
+        '''
+        transfer integrals and matrices
+        '''
+        TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
+                
+        '''
+        transfer terms
+        '''
+        TDr = self.transfer_integrals(TD_arr, i, j, i-1, j) # TD / (TD_arr[i, j]*TD_arr[i-1, j])
+        TUr = self.transfer_integrals(TU_arr, i, j, (i+1)%self.My, j) # TU / (TU_arr[i, j]*TU_arr[(i+1)%self.My, j])
+        TRr = self.transfer_integrals(TR_arr, i, j, i, j-1) # TR / (TR_arr[i, j]*TR_arr[i, j-1])
+        TLr = self.transfer_integrals(TL_arr, i, j, i, (j+1)%self.Mx) # TL / (TL_arr[i, j]*TL_arr[i, (j+1)%self.Mx])
+
+        V_psi = -self.ty*(np.exp(-1j*(2*np.pi*self.qy/self.My))*TDr*self.projector(psi, (i+1)%self.My, j, i-1, j)\
+                    + np.exp(+1j*(2*np.pi*self.qy/self.My))*TUr*self.projector(psi, i-1, j, (i+1)%self.My, j))
+        V_psi -= self.tx*(np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*self.projector(psi, i, (j+1)%self.Mx, i, j-1) \
+                    + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*self.projector(psi, i, j-1, i, (j+1)%self.Mx))
+
+        if j == 0:
+            V_psi = V_psi@np.diag(gauss_pi)
+        if j == self.Mx-1:
+            V_psi = V_psi@np.diag(gauss_zero)
+
+        '''
+        interaction terms for right rotors
+        '''
+        if i == (self.My-1) and j == 0: 
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.25*np.pi))*gauss_pi
+        elif i == (self.My-1) and j == (self.Mx-1): 
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.75*np.pi))*gauss_zero
+        elif i == 0 and j == 0: 
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))*gauss_pi
+        elif i == 0 and j == (self.Mx-1): 
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))*gauss_zero
+                
+        '''
+        Lagrange Multiplier
+        '''
+        lag_mul = self.lagrange_multiplier(psi, i, j, V_psi)
+        #V_psi -= lag_mul
+
+        return V_psi
+
     def single_rotor_eff_potential(self, psi, i, j):
         '''
-            Computes: effective Hamiltonian for the i,j-th rotor
+            Computes: effective Potential for the i,j-th rotor
 
             ----
             Inputs:
@@ -286,7 +389,118 @@ class diagonalization:
                     energy_exc_states[i,j,n] = eigen_values[n]
 
         return energy_exc_states, psi_exc_states
-    
+
+    def apply_fdv_bias_coefficients(self, psi):
+        '''
+            Computes: applies vertical ferro-domain bias coefficients 
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction
+            ----
+
+            ----
+            Outputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction with multiplied bias coefficients for the respective rotors
+            ----
+        '''
+        psi_n = psi.copy()
+        
+        '''
+        gaussian centered around pi and normalize
+        '''
+        dx = self.x[1]-self.x[0]
+        w = 2*np.pi*np.fft.fftfreq(self.x.size, dx)
+
+        gauss_pi = np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
+        norm = np.sum(np.abs(np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2)))**2)
+        gauss_pi = 1/(norm**0.5)*gauss_pi
+
+        '''
+        shift gaussian appropriately
+        '''
+        gauss_zero = np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
+
+        '''
+        apply the respective coefficients for every rotor in the fdv domain wall and normalize individual rotors
+        '''
+        for i in range(self.My):
+            norm1 = np.sum(np.abs(gauss_pi*psi_n[i,0])**2)
+            psi_n[i,0] = 1/(norm1**0.5)*gauss_pi*psi_n[i,0]
+
+            norm2 = np.sum(np.abs(gauss_zero*psi_n[i,self.Mx-1])**2)
+            psi_n[i,self.Mx-1] = 1/(norm2**0.5)*gauss_zero*psi_n[i,self.Mx-1]
+        
+        return psi_n
+
+    def diag_h_eff_bias_fdv(self, psi):
+        '''
+            Computes: effective Hamiltonian with bias in the wavefunction and diagonalizes it for every rotor
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction on which the eff. Hamiltonian depends
+            ----
+
+            ----
+            Outputs:
+                energy_exc_states (3-dimensional: (My,Mx,exc_states)): for every rotor and exc. number the resp. energy
+                psi_exc_states (4-dimensional: (My,Mx,exc_states,n)): for every rotor and exc. number the respective wavefunction
+                                                                    in the last dimension
+            ----
+        '''
+        psi = psi.copy()
+        psi = self.apply_fdv_bias_coefficients(psi) 
+
+        '''
+        objects to store the excitation wavefunctions and e-vals
+        '''
+        psi_exc_states = np.zeros((self.My,self.Mx,self.exc_states,self.n), dtype=complex) 
+        energy_exc_states = np.zeros((self.My,self.Mx,self.exc_states), dtype=complex)
+
+        '''
+        1st and 2nd derivative matrices, both size = (n,n)
+        '''
+        first_derivative = self.first_derivative_mat()
+        sec_derivative = self.second_derivative_mat() 
+
+        '''
+        1. Compute H_psi for every rotor
+        2. Diagonalize H_psi -> wave function and spectrum
+        '''
+        for i in range(self.My):
+            for j in range(self.Mx):
+                ''' 
+                rotor kinetic term
+                '''
+                H_psi = -self.B*sec_derivative 
+            
+                V_psi = self.single_rotor_eff_fdv_bias_potential(psi, i, j)
+
+                H_psi += V_psi 
+
+                '''
+                Lagrange Multiplier
+                '''
+                lag_mul = self.lagrange_multiplier(psi, i, j, H_psi)
+                #H_psi -= lag_mul
+
+                '''
+                diagonalization of h_eff
+                '''
+                eigen_values, eigen_vector = np.linalg.eigh(H_psi)
+                order = np.argsort(eigen_values)
+                eigen_vector = eigen_vector[:,order]
+                eigen_values = eigen_values[order]
+
+                for n in range(self.exc_states):
+                    psi_exc_n = self.get_state_i(eigen_vector, n)
+
+                    psi_exc_states[i,j,n] = psi_exc_n
+                    energy_exc_states[i,j,n] = eigen_values[n]
+
+        return energy_exc_states, psi_exc_states
+
 class multi_ref_ci:
     ''' Class to prepare the multi ref ci states
 
