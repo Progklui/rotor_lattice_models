@@ -421,15 +421,15 @@ class coupling_of_states:
                 overlap (scalar): overlap matrix element 
             ----
         '''
-        psi1 = psi1.reshape((self.My, self.Mx, self.n)).copy() 
-        psi2 = psi2.reshape((self.My, self.Mx, self.n)).copy() 
+        psi1c = psi1.reshape((self.My, self.Mx, self.n)).copy() 
+        psi2c = psi2.reshape((self.My, self.Mx, self.n)).copy() 
 
         #overlap = 1 + 0j
         #for k in range(self.My): 
         #    for p in range(self.Mx):
         #        overlap *= np.sum(np.conjugate(psi1[k,p])*psi2[k,p])
 
-        overlap = np.prod(np.einsum('ijk,ijk->ij', np.conjugate(psi1), psi2))
+        overlap = np.prod(np.einsum('ijk,ijk->ij', np.conjugate(psi1c), psi2c))
         return overlap
     
     def calc_hamiltonian(self, n_states, psi_arr, q_arr):
@@ -455,7 +455,7 @@ class coupling_of_states:
         in_object = h_in.coupl_states(params_calc=self.param_dict, params_wfs=self.param_dict)
 
         '''
-        loop over all psi_i and psi_j combinations
+        Loop over all psi_i and psi_j combinations
 
         ----
         Comment: could be simplified to just run over upper diagonal
@@ -489,6 +489,11 @@ class coupling_of_states:
     def diag_hamiltonian(self, hamiltonian, overlap_matrix):
         '''
             Computes: diagonalization of the effective hamiltonian, i.e. solves generalized e-val problem
+                    
+            ----
+            Comments:
+                - we solve a generalized eigenvalue problem since the basis is not orthogonal
+            ----
 
             ----
             Inputs:
@@ -499,8 +504,13 @@ class coupling_of_states:
             ----
             Outputs:
                 eigen_values (1-dimensional: (n_states)): order (ascending) list of eigenvalues
-                y_theory (2-dimensional: (n_states,n_states)): array of eigenvectors, in 2nd column (access through [:,number])
+                y_theory (2-dimensional: (n_states,n_states)): array of eigenvectors, in 2nd column (access through [:,number]), ordered
+                e_vec1 (2-dimensional: (n_states,n_states)): array of overlap_matrix eigenvectors, in 2nd column (access through [:,number]), ordered
             ----
+        '''
+
+        '''
+        Diagonalize the overlap matrix
         '''
         e_vals1, e_vec1 = np.linalg.eigh(overlap_matrix)
         order = np.argsort(e_vals1)
@@ -508,26 +518,64 @@ class coupling_of_states:
         e_vals1 = e_vals1[order]
         #hamiltonian = np.linalg.inv(np.diag(e_vals1))@np.linalg.inv(e_vec1)@hamiltonian@e_vec1
 
-        eigen_values, eigen_vector = scipy.linalg.eig(a=hamiltonian, b=overlap_matrix) # diagonalize effective hamiltonian
+        '''
+        Solve the general eigenvalue problem: H|psi>=E*S*|psi>
+        '''
+        eigen_values, eigen_vector = scipy.linalg.eig(a=hamiltonian, b=overlap_matrix)
         order = np.argsort(eigen_values)
         eigen_vector = eigen_vector[:,order]
         eigen_values = eigen_values[order]
 
+        '''
+        Normalize the eigenvectors
+        '''
         y_theory = np.zeros((len(eigen_values),len(eigen_values)), dtype=complex)
         for i in range(len(eigen_values)):
-            y_theory[:,i] = eigen_vector[:,i].copy()/(np.sqrt(np.sum(np.conjugate(eigen_vector[:,i])*eigen_vector[:,i]))) # get ground state 
+            y_theory[:,i] = eigen_vector[:,i].copy()/(np.sqrt(np.sum(np.conjugate(eigen_vector[:,i])*eigen_vector[:,i])))
             e_vec1[:,i] = e_vec1[:,i].copy()/(np.sqrt(np.sum(np.conjugate(e_vec1[:,i])*e_vec1[:,i])))
             
         return eigen_values.real, y_theory, e_vec1
     
     def transition_probabilities(self, n_states, e_kets, s_overlap):
-        # compute the transition amplitudes from every state to the next
+        '''
+            Computes: transition amplitudes 
+                    
+            ----
+            Comments:
+                - invovles working in a non-orthogonal basis -> look up notes for reference
+            ----
+
+            ----
+            Inputs:
+                n_states (scalar): number of states
+                e_kets (2-dimensional: (n_states,n_states)): collection of eigenkets, access: j-th eigenvector = e_kets[:,j]
+                s_overlap (2-dimensional: (n_states,n_states)): overlap matrix
+            ----
+            
+            ----
+            Important Variables:
+                amp_j (1-dimensional: (n_states)): amp_j[i] gives the overlap of the i-th psi^old with psi_j^new, where j stands for the 
+                                                ordered index of the new eigenstates
+            ----
+
+            ----
+            Outputs:
+                trans_probs (list): e.g. 1st entry: |<psi_i^old|\spi_0^{new,MRCI}>|^2 for all i
+            ----
+        '''
+
         trans_probs = []
         for j in range(n_states):
+            '''
+            Normalize the eigenvectors of the diagonalization
+            '''
             ket_norm = np.sqrt(np.conjugate(e_kets[:,j].T)@s_overlap@e_kets[:,j])
             e_kets[:,j] = e_kets[:,j]/ket_norm
-        
-            amp_j = s_overlap@e_kets[:,j] # amplitudes for the j-th state
+
+            '''
+            Amplitudes of j-th state with respect to the old basis states
+            '''
+            amp_j = s_overlap@e_kets[:,j] 
             trans_prob_j = np.abs(amp_j)**2
 
             trans_probs.append(trans_prob_j)
