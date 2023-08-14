@@ -294,7 +294,7 @@ class energy:
         return E
 
 class coupling_of_states:
-    ''' Class for computing the effective hamiltonian
+    ''' Class for computing the effective hamiltonian, diagonalization and transition probability calculation
 
         ----
         Inputs:
@@ -363,8 +363,8 @@ class coupling_of_states:
                 E_V (scalar): overlap with respect to interaction term
             ----
         '''
-        psi1 = psi1.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
-        psi2 = psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
+        psi1 = psi1.reshape((self.My, self.Mx, self.n)).copy()
+        psi2 = psi2.reshape((self.My, self.Mx, self.n)).copy()
       
         qx1 = q1[0]
         qy1 = q1[1]
@@ -421,8 +421,8 @@ class coupling_of_states:
                 overlap (scalar): overlap matrix element 
             ----
         '''
-        psi1 = psi1.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
-        psi2 = psi2.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
+        psi1 = psi1.reshape((self.My, self.Mx, self.n)).copy() 
+        psi2 = psi2.reshape((self.My, self.Mx, self.n)).copy() 
 
         #overlap = 1 + 0j
         #for k in range(self.My): 
@@ -498,7 +498,8 @@ class coupling_of_states:
 
             ----
             Outputs:
-
+                eigen_values (1-dimensional: (n_states)): order (ascending) list of eigenvalues
+                y_theory (2-dimensional: (n_states,n_states)): array of eigenvectors, in 2nd column (access through [:,number])
             ----
         '''
         e_vals1, e_vec1 = np.linalg.eigh(overlap_matrix)
