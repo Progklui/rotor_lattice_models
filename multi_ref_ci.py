@@ -242,10 +242,10 @@ if params["couple_state3"] == "FDh":
 if params["couple_state4"] == "SP":
     psi_arr = mult_ref_object.append_single_excitation(new_small_polaron, psi_arr, small_polaron_exc_states)
 
-#psi_arr = mult_ref_object.append_double_excitations(new_ferro_gs, psi_arr, ferro_order_exc_states)
-#psi_arr = mult_ref_object.append_double_excitations(new_ferro_domain_v, psi_arr, ferro_domain_v_exc_states)
-#psi_arr = mult_ref_object.append_double_excitations(new_ferro_domain_h, psi_arr, ferro_domain_h_exc_states)
-#psi_arr = mult_ref_object.append_double_excitations(new_small_polaron, psi_arr, small_polaron_exc_states)
+psi_arr = mult_ref_object.append_double_excitations(new_ferro_gs, psi_arr, ferro_order_exc_states)
+psi_arr = mult_ref_object.append_double_excitations(new_ferro_domain_v, psi_arr, ferro_domain_v_exc_states)
+psi_arr = mult_ref_object.append_double_excitations(new_ferro_domain_h, psi_arr, ferro_domain_h_exc_states)
+psi_arr = mult_ref_object.append_double_excitations(new_small_polaron, psi_arr, small_polaron_exc_states)
 
 n_states = len(psi_arr)
 q_arr = np.zeros((n_states,2), dtype=complex)

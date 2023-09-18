@@ -1,6 +1,10 @@
 import numpy as np
 import scipy 
 
+from scipy import sparse
+
+import matplotlib.pyplot as plt
+
 import os, sys, gc
 
 path = os.path.dirname(__file__) 
@@ -56,7 +60,8 @@ class diagonalization:
         self.exc_states = int(params['excitation_no'])
         self.n   = int(params['n'])
         self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
-        self.sigma_gaussian = 0 # set from outside - width of the gaussian
+        self.dx  = self.x[1]-self.x[0]
+        self.sigma_gaussian = 0.4 # set from outside - width of the gaussian
 
     def first_derivative_mat(self):
         '''
@@ -98,6 +103,65 @@ class diagonalization:
 
         return sec_derivative
 
+    def multiply_diagonal(self, vec, mat):
+        mat_n = mat - np.diag(mat.diagonal()) + np.diag(mat.diagonal()*vec)
+        return mat_n
+    
+    def dy_dx_stencil_3(self):
+        laplace = sparse.diags([-1/2, 0, 1/2],
+                               [-1, 0, 1], shape=(self.x.size, self.x.size), dtype=complex) / self.dx
+        return laplace.toarray()
+    
+    def periodic_dy_dx_stencil_3(self):
+        laplace = self.dy_dx_stencil_3()
+        
+        laplace[0][self.x.size-1] = -(1/2)/self.dx
+        laplace[self.x.size-1][0] = (1/2)/self.dx
+        
+        return laplace
+        
+    def laplace_stencil_3(self):
+        laplace = sparse.diags([1, -2, 1], [-1, 0, 1], shape=(self.x.size, self.x.size), dtype=complex) / self.dx**2
+        return laplace.toarray()
+
+    def periodic_laplace_stencil_3(self):
+        laplace = self.laplace_stencil_3()
+
+        laplace[0][self.x.size-1] = 1/self.dx**2
+        laplace[self.x.size-1][0] = 1/self.dx**2
+
+        return laplace
+    
+    def bias_function(self, offset):
+        gauss = np.exp(-(1-np.cos(self.x-offset))/self.sigma_gaussian**2)
+        return gauss 
+
+    def hermitize_mat(self, mat):
+        return 0.5*(mat+np.conjugate(mat.T))
+
+    def symmetrize_product(self, mat1, mat2): 
+        sym_product = 0.5*(np.einsum('ij,jk->ik', mat1, mat2) + np.einsum('ij,jk->ik', np.conjugate(mat2).T, np.conjugate(mat1).T))
+        return sym_product
+
+    def new_deriv_operator(self, offset):
+        sec_derivative = self.second_derivative_mat() 
+        first_derivative = self.first_derivative_mat()
+        
+        bias_func = self.bias_function(offset)
+
+        first_deriv_fac = np.einsum('ij,j->i', first_derivative, bias_func)
+        sec_deriv_fac   = np.einsum('ij,j->i', sec_derivative, bias_func)
+        
+        #deriv_operator = np.diag(sec_deriv_fac) + 2*np.einsum('i,ij->ij', first_deriv_fac, first_derivative) + np.einsum('i,ij->ij', bias_func, sec_derivative) 
+        #deriv_operator = np.einsum('i,ij->ij', bias_func**(-1), deriv_operator) 
+
+        #deriv_operator = np.diag(sec_deriv_fac) + first_deriv_fac@first_derivative + first_derivative@first_deriv_fac + 0.5*(np.diag(bias_func)@sec_derivative + sec_derivative@np.diag(bias_func))
+        deriv_operator = np.diag(sec_deriv_fac) + 2*self.symmetrize_product(np.diag(first_deriv_fac), first_derivative) + self.symmetrize_product(np.diag(bias_func), sec_derivative)
+        #deriv_operator = 0.5*(np.diag(bias_func**(-1))@deriv_operator + deriv_operator@np.diag(bias_func**(-1)))
+
+        #deriv_operator = self.hermitize_mat(deriv_operator)
+        return deriv_operator #herm_deriv_op
+    
     def get_state_i(self, e_ket_arr, i):
         y_theory = e_ket_arr[:,i]
         norm = np.sqrt(np.abs(np.sum(y_theory*y_theory)))
@@ -203,20 +267,20 @@ class diagonalization:
         dx = self.x[1]-self.x[0]
         w = 2*np.pi*np.fft.fftfreq(self.x.size, dx)
         
-        gauss_pi = np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
+        gauss_pi = np.exp(-(1-np.cos(self.x-np.pi))/self.sigma_gaussian**2) #1+np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
         norm = np.sum(np.abs(np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2)))**2)
-        gauss_pi = 1/(norm**0.5)*gauss_pi
+        #gauss_pi = 1/(norm**0.5)*gauss_pi
 
         '''
         shift gaussian appropriately
         '''
-        gauss_zero = np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
+        gauss_zero = np.exp(-(1-np.cos(self.x))/self.sigma_gaussian**2) #np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
 
         '''
         transfer integrals and matrices
         '''
         TD_arr, TU_arr, TR_arr, TL_arr = energy_object.transfer_matrices(psi, psi)
-                
+        
         '''
         transfer terms
         '''
@@ -230,23 +294,34 @@ class diagonalization:
         V_psi -= self.tx*(np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*self.projector(psi, i, (j+1)%self.Mx, i, j-1) \
                     + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*self.projector(psi, i, j-1, i, (j+1)%self.Mx))
 
-        if j == 0:
-            V_psi = V_psi@np.diag(gauss_pi)
-        if j == self.Mx-1:
-            V_psi = V_psi@np.diag(gauss_zero)
+        #if j == 0:
+        #    V_psi = (1/norm_coeff[i,j]**0.5)*self.multiply_diagonal(gauss_pi, V_psi) #V_psi - np.diag(V_psi.diagonal()) + np.diag(V_psi.diagonal()*gauss_pi) # V_psi@np.diag(gauss_pi)
+        #if j == self.Mx-1:
+        #    V_psi = (1/norm_coeff[i,j]**0.5)*self.multiply_diagonal(gauss_zero, V_psi) #V_psi - np.diag(V_psi.diagonal()) + np.diag(V_psi.diagonal()*gauss_zero) # V_psi@np.diag(gauss_zero)
 
         '''
         interaction terms for right rotors
         '''
         if i == (self.My-1) and j == 0: 
-            V_psi += np.diag(self.V_0*np.cos(self.x-0.25*np.pi))*gauss_pi
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.25*np.pi))
         elif i == (self.My-1) and j == (self.Mx-1): 
-            V_psi += np.diag(self.V_0*np.cos(self.x-0.75*np.pi))*gauss_zero
+            V_psi += np.diag(self.V_0*np.cos(self.x-0.75*np.pi))
         elif i == 0 and j == 0: 
-            V_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))*gauss_pi
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.25*np.pi))
         elif i == 0 and j == (self.Mx-1): 
-            V_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))*gauss_zero
-                
+            V_psi += np.diag(self.V_0*np.cos(self.x+0.75*np.pi))
+        
+        if j == 0:
+            bias_func = self.bias_function(np.pi)
+            V_psi = self.symmetrize_product(np.diag(bias_func), V_psi) # 0.5*(np.diag(bias_func)@V_psi+V_psi@np.diag(bias_func))
+            #V_psi = self.multiply_diagonal(1/gauss_pi, V_psi)
+        elif j == self.Mx-1:
+            bias_func = self.bias_function(0)
+            V_psi = self.symmetrize_product(np.diag(bias_func), V_psi) # 0.5*(np.diag(bias_func)@V_psi+V_psi@np.diag(bias_func))
+            #V_psi = self.multiply_diagonal(1/gauss_zero, V_psi)
+
+        V_psi = self.hermitize_mat(V_psi)
+
         '''
         Lagrange Multiplier
         '''
@@ -390,6 +465,59 @@ class diagonalization:
 
         return energy_exc_states, psi_exc_states
 
+    def get_single_rotor_normalization_coeff(self, psi):
+        '''
+            Computes: get the single rotor normalization coefficients, with gaussians applied in the domain walls
+            ----
+            Inputs:
+                psi (3-dimensional: (My,Mx,n), dtype=complex): wavefunction
+            ----
+
+            ----
+            Outputs:
+                norm_coeff (2-dimensional: (My,Mx), dtype=complex): absolute value squared of every (changed) rotor wavefunction
+            ----
+        '''
+        psi_n = psi.copy()
+        
+        '''
+        gaussian centered around pi and normalize
+        '''
+        dx = self.x[1]-self.x[0]
+        w = 2*np.pi*np.fft.fftfreq(self.x.size, dx)
+
+        gauss_pi = np.exp(-(1-np.cos(self.x-np.pi))/self.sigma_gaussian**2) #1+np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
+        norm = np.sum(np.abs(np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2)))**2)
+        gauss_pi = 1/(norm**0.5)*gauss_pi
+
+        '''
+        shift gaussian appropriately
+        '''
+        gauss_zero = np.exp(-(1-np.cos(self.x))/self.sigma_gaussian**2) #np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
+
+        '''
+        apply the respective coefficients for every rotor in the fdv domain wall and normalize individual rotors
+        '''
+        norm_coeff = np.zeros((self.My,self.Mx), dtype=complex)
+        for i in range(self.My):
+            for j in range(self.Mx):
+                if j == 0:
+                    norm1 = np.sum(np.abs(gauss_pi*psi_n[i,0])**2)
+                    norm_coeff[i,j] = norm1
+                else:
+                    norm1 = np.sum(np.abs(psi_n[i,j])**2)
+                    norm_coeff[i,j] = norm1 
+
+                if j == self.Mx-1:
+                    norm2 = np.sum(np.abs(gauss_zero*psi_n[i,self.Mx-1])**2)
+                    norm_coeff[i,j] = norm2
+                else: 
+                    norm2 = np.sum(np.abs(psi_n[i,j])**2)
+                    norm_coeff[i,j] = norm2 
+            
+        return norm_coeff
+
+
     def apply_fdv_bias_coefficients(self, psi):
         '''
             Computes: applies vertical ferro-domain bias coefficients 
@@ -406,30 +534,18 @@ class diagonalization:
         '''
         psi_n = psi.copy()
         
-        '''
-        gaussian centered around pi and normalize
-        '''
-        dx = self.x[1]-self.x[0]
-        w = 2*np.pi*np.fft.fftfreq(self.x.size, dx)
-
-        gauss_pi = np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2))
-        norm = np.sum(np.abs(np.exp(-(self.x-np.pi)**2/(2*self.sigma_gaussian**2)))**2)
-        gauss_pi = 1/(norm**0.5)*gauss_pi
-
-        '''
-        shift gaussian appropriately
-        '''
-        gauss_zero = np.fft.ifft(np.exp(1.0j*np.angle(self.x-2*np.pi)*w)*np.fft.fft(gauss_pi))
+        bias_func_right = self.bias_function(np.pi)
+        bias_func_left = self.bias_function(0)
 
         '''
         apply the respective coefficients for every rotor in the fdv domain wall and normalize individual rotors
         '''
         for i in range(self.My):
-            norm1 = np.sum(np.abs(gauss_pi*psi_n[i,0])**2)
-            psi_n[i,0] = 1/(norm1**0.5)*gauss_pi*psi_n[i,0]
+            norm_right = np.sum(np.abs(bias_func_right*psi_n[i,0])**2)
+            psi_n[i,0] = 1/(norm_right**0.5)*bias_func_right*psi_n[i,0].copy()
 
-            norm2 = np.sum(np.abs(gauss_zero*psi_n[i,self.Mx-1])**2)
-            psi_n[i,self.Mx-1] = 1/(norm2**0.5)*gauss_zero*psi_n[i,self.Mx-1]
+            norm_left = np.sum(np.abs(bias_func_left*psi_n[i,self.Mx-1])**2)
+            psi_n[i,self.Mx-1] = 1/(norm_left**0.5)*bias_func_left*psi_n[i,self.Mx-1].copy()
         
         return psi_n
 
@@ -449,8 +565,10 @@ class diagonalization:
                                                                     in the last dimension
             ----
         '''
-        psi = psi.copy()
-        psi = self.apply_fdv_bias_coefficients(psi) 
+        psi_n = psi.copy()
+
+        norm_coeff = self.get_single_rotor_normalization_coeff(psi)
+        psi_v = self.apply_fdv_bias_coefficients(psi_n) 
 
         '''
         objects to store the excitation wavefunctions and e-vals
@@ -473,17 +591,16 @@ class diagonalization:
                 ''' 
                 rotor kinetic term
                 '''
-                H_psi = -self.B*sec_derivative 
-            
-                V_psi = self.single_rotor_eff_fdv_bias_potential(psi, i, j)
+                if j == 0:
+                    H_psi = -self.B*self.new_deriv_operator(np.pi) # right domain
+                elif j == self.Mx-1:
+                    H_psi = -self.B*self.new_deriv_operator(0) # left domain
+                else: 
+                    H_psi = -self.B*sec_derivative 
 
-                H_psi += V_psi 
+                V_psi = self.single_rotor_eff_fdv_bias_potential(psi_v,i,j)
 
-                '''
-                Lagrange Multiplier
-                '''
-                lag_mul = self.lagrange_multiplier(psi, i, j, H_psi)
-                #H_psi -= lag_mul
+                H_psi += V_psi
 
                 '''
                 diagonalization of h_eff
@@ -498,6 +615,10 @@ class diagonalization:
 
                     psi_exc_states[i,j,n] = psi_exc_n
                     energy_exc_states[i,j,n] = eigen_values[n]
+
+                #if j == self.Mx-1:
+                #    plt.plot(psi[i,j])
+                #    plt.plot(psi_exc_states[i,j,0]); plt.show()
 
         return energy_exc_states, psi_exc_states
 
@@ -684,6 +805,58 @@ class multi_ref_ci:
     
         return new_ref, conv_energ_gs, overlap_arr
 
+    def creat_new_ref_state_with_bias_field(self, iter_number, ref_state, q, sigma_gauss):
+        '''
+            Computes: new reference state based on the variational added bias in the ferro-domain walls
+
+            ----
+            Inputs:
+                iter_number (int): number of iterations of self-consistent effective hamiltonian diagonalization
+                ref_state (3-dimensional: (My,Mx,n)): reference ground state
+                q (2-dimensional: (qx, qy)): momentum numbers of ref. ground state
+            ----
+
+            ----
+            Description:
+                1. Compute effective Hamiltonian and diagonalize it
+                2. Create new reference ground state with the ground states of the diagonalizatoin
+                3. Compute energy and overlap of the new ref ground state
+                4. Repeat
+            ----
+
+            ----
+            Outputs:
+                new_ref (3-dimensional: (My,Mx,n)): new reference ground state
+                conv_energ_gs (1-dimensional: (iter_number)): energies during the convergence
+                overlap_arr (1-dimensional: (iter_number)): overlaps with previous state during the convergence
+            ----
+        '''
+
+        new_ref = ref_state.copy()
+        
+        coupl_object = energy.coupling_of_states(params=self.param_dict)
+        diag_object = diagonalization(params=self.param_dict)
+
+        diag_object.sigma_gaussian = sigma_gauss 
+        
+        overlap_arr = np.zeros(iter_number, dtype=complex)
+        conv_energ_gs = np.zeros(iter_number, dtype=complex)
+
+        for t in range(iter_number):
+            new_ref_next = new_ref.copy()
+            energy_exc_states, psi_exc_states = diag_object.diag_h_eff_bias_fdv(new_ref_next)
+
+            for i in range(self.My):
+                for j in range(self.Mx):
+                    new_ref[i,j] = self.set_phase(psi_exc_states[i,j,0]) 
+        
+            conv_energ_gs[t] = coupl_object.calc_hamiltonian_matrix_element(new_ref, q, new_ref, q)[0]
+            overlap_arr[t] = coupl_object.calc_overlap(new_ref, new_ref_next)
+            print('Iter =', t, ', Overlap =', overlap_arr[t])
+        
+        new_ref_corrected = diag_object.apply_fdv_bias_coefficients(new_ref.copy())
+        return new_ref_corrected, new_ref, conv_energ_gs, overlap_arr
+    
     def append_single_excitation(self, ref_gs, psi_arr, psi_exc_states):
         '''
             Computes: single-excitation list
