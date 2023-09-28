@@ -122,29 +122,32 @@ class wavefunctions:
 
         psi_init = self.init_uniform() # create object
 
+        sigma_gauss = 0.5
+        norm2 = np.sum(np.abs(np.exp(-(1-np.cos(self.x))/sigma_gauss**2)**2))
+
         if orientation == 'vertical':
             for i in range(self.My):
                 # other option is to try with np.cos(0.5*x) and np.sin(...)
 
                 # left column
-                psi_init[i,self.Mx-1] = np.cos(self.x) + 0j
-                psi_init[i,self.Mx-1][int(self.n/4):int(self.n/2)] = 0.01 + 0j
-                psi_init[i,self.Mx-1][int(self.n/2):int(3*self.n/4)] = 0.01 + 0j
+                psi_init[i,self.Mx-1] = (1/norm2**0.5)*np.exp(-(1-np.cos(self.x))/sigma_gauss**2)  #np.cos(self.x) + 0j
+                #psi_init[i,self.Mx-1][int(self.n/4):int(self.n/2)] = 0.01 + 0j
+                #psi_init[i,self.Mx-1][int(self.n/2):int(3*self.n/4)] = 0.01 + 0j
 
                 # right column
-                psi_init[i,0] = np.cos(self.x) + 0j
-                psi_init[i,0][0:int(self.n/4)] = 0.01 + 0j
-                psi_init[i,0][int(3*self.n/4):self.n] = 0.01 + 0j
+                psi_init[i,0] = (1/norm2**0.5)*np.exp(-(1-np.cos(self.x-np.pi))/sigma_gauss**2) #np.cos(self.x) + 0j
+                #psi_init[i,0][0:int(self.n/4)] = 0.01 + 0j
+                #psi_init[i,0][int(3*self.n/4):self.n] = 0.01 + 0j
                 
         elif orientation == 'horizontal':
             for j in range(self.Mx):
                 # top row
-                psi_init[self.My-1,j] = np.sin(self.x) 
-                psi_init[self.My-1,j][0:int(self.n/2)] = 0.01 
+                psi_init[self.My-1,j] = (1/norm2**0.5)*np.exp(-(1-np.cos(self.x-3*np.pi/2))/sigma_gauss**2) #np.sin(self.x) 
+                #psi_init[self.My-1,j][0:int(self.n/2)] = 0.01 
 
                 # bottom row
-                psi_init[0,j] = np.sin(self.x) 
-                psi_init[0,j][int(self.n/2):self.n] = 0.01 
+                psi_init[0,j] = (1/norm2**0.5)*np.exp(-(1-np.cos(self.x-np.pi/2))/sigma_gauss**2) #np.sin(self.x) 
+                #psi_init[0,j][int(self.n/2):self.n] = 0.01 
         return psi_init
     
     def init_small_polaron(self):

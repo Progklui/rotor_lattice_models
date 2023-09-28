@@ -95,9 +95,9 @@ class eom:
         Tarr_new = Tarr_new[:, :, np.newaxis]
         return Tarr_new
 
-    def hpsi_lang_firsov(self, psi_collection):
+    def hpsi_transfer_and_rot(self, psi_collection):
         '''
-            Computes: H_psi of the variational equations of motion
+            Computes: The transfer and rotational part of Hpsi
 
             ----
             Inputs:
@@ -166,6 +166,25 @@ class eom:
         H_psi -= self.tx*( \
                     np.exp(-1j*(2*np.pi*self.qx/self.Mx))*TRr*wfn_manip.get_next_x_rotor() \
                     + np.exp(+1j*(2*np.pi*self.qx/self.Mx))*TLr*wfn_manip.get_prev_x_rotor())
+
+        return H_psi
+
+    def hpsi_lang_firsov(self, psi_collection):
+        '''
+            Computes: H_psi of the variational equations of motion
+
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Outputs:
+                H_psi (2-dimensional: (My*Mx,n)): H_psi of the variational equations of motion
+            ----
+        '''
+        
+        H_psi = self.hpsi_transfer_and_rot(psi_collection)
         
         '''
         interaction terms
@@ -174,6 +193,41 @@ class eom:
         H_psi[self.My-1,self.Mx-1] += self.V_0*np.cos(self.x-0.75*np.pi)*psi_collection[self.My-1,self.Mx-1]
         H_psi[0,0]                 += self.V_0*np.cos(self.x+0.25*np.pi)*psi_collection[0,0]
         H_psi[0,self.Mx-1]         += self.V_0*np.cos(self.x+0.75*np.pi)*psi_collection[0,self.Mx-1]
+
+        return H_psi
+
+    def hpsi_lang_firsov_sym_breaking_interaction(self, psi_collection):
+        '''
+            Computes: H_psi of the variational equations of motion, but with symmetry broken interaction terms
+
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Variables:
+                angle_pattern (1-dimensional: (4)): delta angle for every interaction term (be careful with the sign)
+            ----
+
+            ----
+            Outputs:
+                H_psi (2-dimensional: (My*Mx,n)): H_psi of the variational equations of motion
+            ----
+        '''
+        
+        H_psi = self.hpsi_transfer_and_rot(psi_collection)
+        
+        angle_pattern = np.array(self.param_dict['angle_pattern'])
+        #V_0_pattern = np.array(self.param_dict['V_0_pattern'])
+
+        '''
+        interaction terms
+        '''
+        H_psi[self.My-1,0]         += self.V_0*np.cos(self.x-0.25*np.pi+angle_pattern[0])*psi_collection[self.My-1,0]
+        H_psi[self.My-1,self.Mx-1] += self.V_0*np.cos(self.x-0.75*np.pi+angle_pattern[1])*psi_collection[self.My-1,self.Mx-1]
+        H_psi[0,0]                 += self.V_0*np.cos(self.x+0.25*np.pi+angle_pattern[2])*psi_collection[0,0]
+        H_psi[0,self.Mx-1]         += self.V_0*np.cos(self.x+0.75*np.pi+angle_pattern[3])*psi_collection[0,self.Mx-1]
 
         return H_psi
 
@@ -198,6 +252,35 @@ class eom:
             ----
         '''
         H_psi = self.hpsi_lang_firsov(psi_collection)
+
+        lagrange_multiplier = np.einsum('ijk,ijk->ij', np.conjugate(psi_collection), H_psi)
+        
+        H_psi = H_psi - lagrange_multiplier[:, :, np.newaxis] * psi_collection
+        H_psi = H_psi.flatten()
+
+        return H_psi
+
+    def rhs_lang_firsov_imag_time_prop_sym_breaking_interaction(self, psi_collection):
+        '''
+            Computes: right-hand-side of the variational e.o.m. for imaginary time propagation, but symmetry breaking in the angle
+
+            ----
+            Inputs:
+                psi_collection (3-dimensional: (My, Mx, n), dtype: complex): stores the rotor wavefunctions
+            ----
+
+            ----
+            Variables: 
+                H_psi (2-dimensional: (My*Mx,n)): right-hand-side of the variational equations of motion
+                lagrange_param (2-dimensional: (My*Mx,n)): lagrange parameter to ensure normalization
+            ----
+
+            ----
+            Outputs:
+                H_psi (1-dimensional: (My*Mx*n)): right-hand-side of the variational equations of motion for imag time evolution
+            ----
+        '''
+        H_psi = self.hpsi_lang_firsov_sym_breaking_interaction(psi_collection)
 
         lagrange_multiplier = np.einsum('ijk,ijk->ij', np.conjugate(psi_collection), H_psi)
         
@@ -246,6 +329,23 @@ class eom:
         '''
     
         return lambda t_, psi_ : -1.0*self.rhs_lang_firsov_imag_time_prop(psi_.reshape((self.My,self.Mx,self.n)))
+
+    def create_integration_function_imag_time_prop_sym_breaking_interaction(self): 
+        '''
+            Computes: lambda expression for imaginary time propagation, but for symmetry breaking
+
+            ----
+            Inputs:
+                None
+            ----
+
+            ----
+            Outputs:
+                Lambda expression for scipy ivp solver
+            ----
+        '''
+    
+        return lambda t_, psi_ : -1.0*self.rhs_lang_firsov_imag_time_prop_sym_breaking_interaction(psi_.reshape((self.My,self.Mx,self.n)))
 
     def create_integration_function_real_time_prop(self): 
         '''
@@ -389,6 +489,97 @@ class eom:
 
         # lambda expression of right-hand-side of e.o.m
         func = self.create_integration_function_imag_time_prop() 
+
+        iter = 0
+        epsilon = 1 
+        tol = self.param_dict['tol']
+        while epsilon > tol:
+            print('V_0 =', self.V_0, ', iter step = ' + str(iter+1))
+            
+            '''
+            imag time evolution for dt
+            '''
+            sol = solve_ivp(func, [0,self.dt], psi_init, method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
+
+            '''
+            normalize
+            '''
+            psi_iter = sol.y.T[-1]
+            psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(self.M,self.n))
+
+            '''
+            compute and save dE_dt
+            '''
+            dE_dtx, dE_dty = energy_object.deriv_dE_dt(psi_iter)
+            in_object.save_dE_dt_during_prop(iter, self.V_0, dE_dtx, dE_dty, path)
+
+            '''
+            compute and save green function
+            '''
+            green_function = overlap_object.calc_overlap(psi_iter, psi_0)
+            green_function = np.array([green_function], dtype=complex)
+            in_object.save_green_func_during_prop(iter, self.V_0, green_function, path)
+
+            '''
+            compute and save energy and epsilon criterion
+            '''
+            E = energy_object.calc_energy(psi_iter)
+            epsilon = self.epsilon_criterion_single_rotor(psi_iter, psi_init)
+            
+            E_epsilon_combined = np.append(np.array([epsilon]), E).astype(complex)
+            in_object.save_energies_during_prop(iter, self.V_0, E_epsilon_combined, path)
+            
+            '''
+            update psi_init
+            '''
+            psi_init = wfn_manip.reshape_one_dim(psi_iter)
+
+            print("epsilon =", epsilon, "\n")
+
+            iter = iter + 1
+
+        psi_out = wfn_manip.reshape_three_dim(psi_init)
+        return psi_out
+    
+    def solve_for_fixed_params_imag_time_prop_sym_breaking_int(self, psi_init):
+        '''
+            Computes: finds ground state variational wave function for the defined parameters
+
+            ----
+            Inputs:
+                psi_init (3-dimensional: (My,Mx,n)): initial wavefunction 
+            ----
+
+            ----
+            Outputs:
+                psi_out (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+
+            ----
+            Logic:
+                (1) evolve psi_init through time dt -> psi_iter
+                (2) reshape psi_iter and normalize it
+                (3) compute energy and save it - allows checking whether we pass transition states
+                (4) check whether epsilon criterion is converged
+                (5) update psi_init and repeat (1) to (4)
+            ----
+        '''
+        wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+        psi_init = wfn_manip.reshape_one_dim(psi_init)
+        
+        psi_0 = psi_init.copy() # for green function 
+
+        # energy objects
+        energy_object = energy.energy(params=self.param_dict)
+        overlap_object = energy.coupling_of_states(params=self.param_dict) # needed for overlap calculations
+        
+        energy_object.V_0 = self.V_0
+        overlap_object.V_0 = self.V_0
+
+        in_object = h_in.imag_time(params=self.param_dict)
+
+        # lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_imag_time_prop_sym_breaking_interaction() 
 
         iter = 0
         epsilon = 1 

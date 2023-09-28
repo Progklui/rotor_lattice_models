@@ -122,6 +122,74 @@ class energy:
         E_out = np.array([E, E_T, E_B, E_V], dtype=complex)
         return E_out 
 
+    def calc_energy_sym_breaking(self, psi):
+        '''
+            Computes: energy of psi
+
+            ----
+            Inputs:
+                psi (3-dimensional: (My, Mx, n), dtype: complex): rotor wavefunction
+            ----
+
+            ----
+            Variables: 
+                psi_collection_conj (3-dimensional: (My, Mx, n), dtype: complex): complex conjugate
+
+                TD_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for down jumping 
+                TU_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for up jumping
+                TR_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for right jumping
+                TL_arr (2-dimensional: (My, Mx), dtype=complex): transfer integral for left jumping
+
+                TD (scalar, dtype=complex): product of TD_arr
+                TU (scalar, dtype=complex): product of TU_arr
+                TR (scalar, dtype=complex): product of TR_arr
+                TL (scalar, dtype=complex): product of TL_arr
+
+                E_T (scalar, dtype=complex): kinetic/tunneling energy of electron
+                E_B (scalar, dtype=complex): kinetic energy of rotors
+                E_V (scalar, dtype=complex): interaction energy of electrons and rotors
+                E (scalar, dtype=complex): total energy
+                E_out (4-dimensional: (E, E_T, E_B, E_V)): energy array of psi
+            ----
+
+            ----
+            Outputs:
+                E_out (4-dimensional: (E, E_T, E_B, E_V)): energy array of psi
+            ----
+        '''
+
+        psi = psi.reshape((self.My, self.Mx, self.n)) # for safety, to ensure that it is always of same shape
+
+        '''
+        tunneling energy
+        '''
+        dE_dtx, dE_dty = self.deriv_dE_dt(psi)
+        E_T = self.ty*dE_dty + self.tx*dE_dtx
+
+        '''
+        rotor kinetic energy
+        '''
+        E_B = self.rotor_kinetic_energy(psi,psi)
+
+        angle_pattern = np.array(self.param_dict['angle_pattern'])
+        #V_0_pattern = np.array(self.param_dict['V_0_pattern'])
+        
+        '''
+        interaction energy
+        '''
+        E_V = self.V_0*np.sum(np.cos(self.x-0.25*np.pi+angle_pattern[0])*np.abs(psi[self.My-1,0])**2)
+        E_V += self.V_0*np.sum(np.cos(self.x-0.75*np.pi+angle_pattern[1])*np.abs(psi[self.My-1,self.Mx-1])**2)
+        E_V += self.V_0*np.sum(np.cos(self.x+0.25*np.pi+angle_pattern[2])*np.abs(psi[0,0])**2)
+        E_V += self.V_0*np.sum(np.cos(self.x+0.75*np.pi+angle_pattern[3])*np.abs(psi[0,self.Mx-1])**2)
+        
+        '''
+        total energy
+        '''
+        E = E_T + E_V + E_B 
+
+        E_out = np.array([E, E_T, E_B, E_V], dtype=complex)
+        return E_out 
+    
     def deriv_dE_dt(self, psi):
         '''
             Computes: derivative of the energy with respect to tx and ty
