@@ -274,7 +274,7 @@ for i in diff_tx_ty:
 
 
 params["init_choice"] = "ferro_domain_horizontal_wall"
-params["Mx"] = 32
+params["Mx"] = 16
 params["My"] = 4
 for j in range(len(diff_tx_ty)):
     tx, ty = get_tx_ty(sum_tx_ty, diff_tx_ty[j])
