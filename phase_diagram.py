@@ -15,6 +15,8 @@ import class_handle_wavefunctions as h_wavef
 import class_visualization as vis
 import class_mass_size as mass_size
 
+path = os.path.dirname(__file__) 
+
 def get_file_name(params):
     ''' 
     ----
@@ -286,6 +288,8 @@ for j in range(len(diff_tx_ty)):
     for i in range(len(V_0_arr_run)):
         params["V_0"] = V_0_arr_run[i]
         
+        print(path) 
+
         '''  
         Imag Time Prop
         '''
@@ -295,7 +299,7 @@ for j in range(len(diff_tx_ty)):
         '''  
         Store Results
         '''
-        folder = 'results/phase_diagram/fdh/'
+        folder = path+'/results/phase_diagram/fdh/'
         save_calculation_run(psi, E_evo, epsilon_evo, params, folder)
 
 
@@ -321,5 +325,5 @@ for j in range(len(diff_tx_ty)):
         '''  
         Store Results
         '''
-        folder = 'results/phase_diagram/sp/'
+        folder = path+'/results/phase_diagram/sp/'
         save_calculation_run(psi, E_evo, epsilon_evo, params, folder)
