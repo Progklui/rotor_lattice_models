@@ -75,7 +75,7 @@ Mx_list = 2**(np.arange(2,7))
 My_list = 2**(np.arange(2,7))
 
 params["init_choice"] = "uniform"
-folder = path+'results/numerics_verification/fo/'
+folder = path+'/results/numerics_verification/fo/'
 
 make_size_scan(Mx_list, My_list, params, folder)
 
@@ -87,7 +87,7 @@ My_list = 2**(np.arange(2,9))
 Mx_list = np.ones(len(My_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_vertical_wall"
-folder = path+'results/numerics_verification/fdv/'
+folder = path+'/results/numerics_verification/fdv/'
 
 make_size_scan(Mx_list, My_list, params, folder)
 
@@ -99,7 +99,7 @@ Mx_list = 2**(np.arange(2,9))
 My_list = np.ones(len(Mx_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_horizontal_wall"
-folder = path+'results/numerics_verification/fdh/'
+folder = path+'/results/numerics_verification/fdh/'
 
 make_size_scan(Mx_list, My_list, params, folder)
 
@@ -111,6 +111,6 @@ Mx_list = 2**(np.arange(2,7))
 My_list = 2**(np.arange(2,7))
 
 params["init_choice"] = "small_polaron"
-folder = path+'results/numerics_verification/sp/'
+folder = path+'/results/numerics_verification/sp/'
 
 make_size_scan(Mx_list, My_list, params, folder)
