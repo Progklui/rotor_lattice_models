@@ -33,7 +33,7 @@ def make_size_scan(Mx_list, My_list, params, folder):
         '''  
         Store Results
         '''
-        h5_io_object.save_calculation_run(psi, np.array(E_evo), np.array(epsilon_evo), params, folder)
+        h5_io_object.save_calculation_run(psi, E_evo, epsilon_evo, params, folder)
     return 
 
 params = {"n": 256,
