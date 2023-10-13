@@ -29,7 +29,6 @@ def make_size_scan(Mx_list, My_list, params, folder):
         Imaginary Time Propagation
         '''
         psi, E_evo, epsilon_evo = eom_object.solve_for_fixed_params_imag_time_prop_new(psi_init)
-        E_evo[i] = E_evo[-1]
 
         '''  
         Store Results
