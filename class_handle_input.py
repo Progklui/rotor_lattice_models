@@ -1,10 +1,172 @@
 import numpy as np
-from scipy.integrate import solve_ivp
-
 import os, sys, csv, json
+import h5py 
 
 path = os.path.dirname(__file__) 
 sys.path.append(path)
+
+
+class io_hdf5: 
+    ''' 
+    ----
+    Description: This class handles hdf5 input and output
+    ----
+
+    ----
+    Methods: 
+        get_file_name(params): return sring of the file name fo a run, specifies all parameters
+        save_calculation_run(psi, E_imag, epsilon_imag, params, folder): saves the wavefunctions
+        get_psi(file_path): given the file path it returns psi and corresponding params
+    ----
+
+    ----
+    Comment: 
+        For future work, we can get rid of params file and specify the calculation parameters in the hdf5 file directly together with psi!!
+    ----
+    '''
+
+    def get_file_name(self, params):
+        ''' 
+        ----
+        Description: get file name for a run
+        ----
+
+        ----
+        Inputs:
+            params (data dict): defines all the calculation variables in a dictionary
+        ----
+
+        ----
+        Outputs:
+            file_name (string): file name
+        ----
+        '''
+        Mx = params["Mx"]
+        My = params["My"] 
+        tx = params["tx"]
+        ty = params["ty"]
+        V_0 = params["V_0"]
+        B = params["B"]
+
+        file_name = 'tx_'+str(tx)+'_ty_'+str(ty)+'_V0_'+str(V_0)+'_B_'+str(B)+'_Mx_'+str(Mx)+'_My_'+str(My)+'.hfd5'
+        return file_name
+
+    def save_calculation_run(self, psi, E_imag, epsilon_imag, params, folder):
+        ''' 
+        ----
+        Description: stores the wavefunction, energies and epsilon criterion during imag time propagation, hdf file format
+        ----
+
+        ----
+        Inputs:
+            psi (3-dimensional: (My,Mx,n)): wavefunction to store
+            E_imag (1-dimensional: (number of runs)): energies during the imag time propagation
+            epsilon_imag (1-dimensional: (number of runs)): convergence criterion
+            params (data dict): defines all the calculation variables in a dictionary
+            folder (string): folder path in form '../../'
+        ----
+
+        ----
+        Outputs:
+            file_name (string): file name
+        ----
+        '''
+
+        file_name = self.get_file_name(params)
+        with h5py.File(folder+file_name, "a") as f:
+            if 'phi' in f:
+                phi_data = f['phi']
+                phi_data[...] = psi
+                phi_data.attrs['Mx'] = params['Mx']
+                phi_data.attrs['My'] = params['My']
+                phi_data.attrs['n']  = params['n']
+                phi_data.attrs['tx'] = params['tx']
+                phi_data.attrs['ty'] = params['ty']
+                phi_data.attrs['V_0'] = params['V_0']
+                phi_data.attrs['B'] = params['B']
+                phi_data.attrs['qx'] = params['qx']
+                phi_data.attrs['qy'] = params['qy']
+                phi_data.attrs['tol'] = params['tol']
+                phi_data.attrs['dt'] = params['dt']
+                phi_data.attrs['init_choice'] = params['init_choice']
+            else:
+                phi_data = f.create_dataset('phi', data=psi)
+                phi_data.attrs['Mx'] = params['Mx']
+                phi_data.attrs['My'] = params['My']
+                phi_data.attrs['n']  = params['n']
+                phi_data.attrs['tx'] = params['tx']
+                phi_data.attrs['ty'] = params['ty']
+                phi_data.attrs['V_0'] = params['V_0']
+                phi_data.attrs['B'] = params['B']
+                phi_data.attrs['qx'] = params['qx']
+                phi_data.attrs['qy'] = params['qy']
+                phi_data.attrs['tol'] = params['tol']
+                phi_data.attrs['dt'] = params['dt']
+                phi_data.attrs['init_choice'] = params['init_choice']
+
+            if 'e_imag_time_prop' in f:
+                e_evo_data = f['e_imag_time_prop']
+                e_evo_data[...] = np.array(E_imag)
+            else:
+                f.create_dataset('e_imag_time_prop', data=np.array(E_imag))
+
+            if 'epsilon_imag_prop' in f:
+                epsilon_data = f['epsilon_imag_prop']
+                epsilon_data[...] = epsilon_imag
+            else:
+                f.create_dataset('epsilon_imag_prop', data=epsilon_imag)
+
+        return
+
+    def get_psi(self, file_path):
+        ''' 
+        ----
+        Description: reads in psi
+        ----
+
+        ----
+        Inputs:
+            file_path (string): file path in form '../../'
+        ----
+
+        ----
+        Outputs:
+            psi (3-dimensional (My,Mx,n)): wavefunction
+            params (dict): corresponding parameter dict
+        ----
+        '''
+
+        with h5py.File(file_path, 'r') as f:
+            phi = f['phi']
+            e_evo = f['e_imag_time_prop']
+            epsilon_evo = f['epsilon_imag_prop']
+
+            params = {"n": int(phi.attrs['n']),
+                    "Mx": int(phi.attrs['Mx']),
+                    "Mx_display": 4,
+                    "converge_new_lattice": "no",
+                    "My": int(phi.attrs['My']),
+                    "M": int(phi.attrs['Mx']*phi.attrs['My']),
+                    "My_display": 4,
+                    "B": float(phi.attrs['B']),
+                    "tx": float(phi.attrs['tx']),
+                    "ty": float(phi.attrs['ty']),
+                    "V_0": float(phi.attrs['V_0']),
+                    "qx": int(phi.attrs['qx']),
+                    "qy": int(phi.attrs['qy']),
+                    "init_choice": "ferro_domain_vertical_wall",
+                    "external_wf_tag": " ",
+                    "excitation_no": 0,
+                    "angle_pattern": [0,0,0,0],
+                    "V_0_pattern": [0,0,0,0],
+                    "n_states": 0,
+                    "path_to_input_wavefunction": " ",
+                    "dt": float(phi.attrs['dt']),
+                    "tol": float(phi.attrs['tol'])}
+
+            phi = f['phi'][...]
+
+        return phi, params
 
 '''
 TODO: document this class
