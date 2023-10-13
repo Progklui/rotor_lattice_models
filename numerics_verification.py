@@ -83,7 +83,7 @@ make_size_scan(Mx_list, My_list, params, folder)
 2. Scan for vertical Ferro-Domain
 '''
 My_list = 2**(np.arange(2,9))
-Mx_list = np.ones(len(My_list), dtype=int)
+Mx_list = 4*np.ones(len(My_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_vertical_wall"
 folder = path+'/results/numerics_verification/fdv/'
@@ -95,7 +95,7 @@ make_size_scan(Mx_list, My_list, params, folder)
 3. Scan for horizontal Ferro-Domain
 '''
 Mx_list = 2**(np.arange(2,9)) 
-My_list = np.ones(len(Mx_list), dtype=int)
+My_list = 4*np.ones(len(Mx_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_horizontal_wall"
 folder = path+'/results/numerics_verification/fdh/'
