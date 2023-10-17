@@ -43,12 +43,15 @@ class io_hdf5:
         '''
         Mx = params["Mx"]
         My = params["My"] 
+        qx = params["qx"]
+        qy = params["qy"] 
         tx = params["tx"]
         ty = params["ty"]
         V_0 = params["V_0"]
         B = params["B"]
 
-        file_name = 'tx_'+str(tx)+'_ty_'+str(ty)+'_V0_'+str(V_0)+'_B_'+str(B)+'_Mx_'+str(Mx)+'_My_'+str(My)+'.hfd5'
+        file_name = 'tx_'+str(tx)+'_ty_'+str(ty)+'_V0_'+str(V_0)+'_B_'+str(B)\
+            +'_Mx_'+str(Mx)+'_My_'+str(My)+'_qx_'+str(qx)+'_qy_'+str(qy)+'.hfd5'
         return file_name
 
     def save_calculation_run(self, psi, E_imag, epsilon_imag, params, folder):

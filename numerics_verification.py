@@ -76,30 +76,47 @@ My_list = 2**(np.arange(2,7))
 params["init_choice"] = "uniform"
 folder = path+'/results/numerics_verification/fo/'
 
+params["qx"] = 1
+params["qy"] = 0
 make_size_scan(Mx_list, My_list, params, folder)
 
+params["qx"] = 0
+params["qy"] = 1
+make_size_scan(Mx_list, My_list, params, folder)
 
 '''
 2. Scan for vertical Ferro-Domain
 '''
-My_list = 2**(np.arange(2,9))
-Mx_list = 4*np.ones(len(My_list), dtype=int)
+My_list = 2**(np.arange(2,8))
+Mx_list = 32*np.ones(len(My_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_vertical_wall"
 folder = path+'/results/numerics_verification/fdv/'
 
+params["qx"] = 1
+params["qy"] = 0
+make_size_scan(Mx_list, My_list, params, folder)
+
+params["qx"] = 0
+params["qy"] = 1
 make_size_scan(Mx_list, My_list, params, folder)
 
 
 '''
 3. Scan for horizontal Ferro-Domain
 '''
-Mx_list = 2**(np.arange(2,9)) 
-My_list = 4*np.ones(len(Mx_list), dtype=int)
+Mx_list = 2**(np.arange(2,8)) 
+My_list = 32*np.ones(len(Mx_list), dtype=int)
 
 params["init_choice"] = "ferro_domain_horizontal_wall"
 folder = path+'/results/numerics_verification/fdh/'
 
+params["qx"] = 1
+params["qy"] = 0
+make_size_scan(Mx_list, My_list, params, folder)
+
+params["qx"] = 0
+params["qy"] = 1
 make_size_scan(Mx_list, My_list, params, folder)
 
 
@@ -112,4 +129,10 @@ My_list = 2**(np.arange(2,7))
 params["init_choice"] = "small_polaron"
 folder = path+'/results/numerics_verification/sp/'
 
+params["qx"] = 1
+params["qy"] = 0
+make_size_scan(Mx_list, My_list, params, folder)
+
+params["qx"] = 0
+params["qy"] = 1
 make_size_scan(Mx_list, My_list, params, folder)
