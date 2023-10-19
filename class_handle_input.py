@@ -190,9 +190,8 @@ class io_hdf5:
         '''
 
         with h5py.File(file_path, 'r') as f:
-            phi = f['phi']
-            e_evo = f['e_imag_time_prop']
-            epsilon_evo = f['epsilon_imag_prop']
+            e_evo = f['e_imag_time_prop'][...]
+            epsilon_evo = f['epsilon_imag_prop'][...]
 
         return e_evo, epsilon_evo
 
