@@ -171,6 +171,31 @@ class io_hdf5:
 
         return phi, params
 
+    def get_evo_values(self, file_path):
+        ''' 
+        ----
+        Description: reads in psi
+        ----
+
+        ----
+        Inputs:
+            file_path (string): file path in form '../../'
+        ----
+
+        ----
+        Outputs:
+            e_evo (1-dimensional): energy values during evolution
+            epsilon_evo (1-dimensional): epsilon values during evolution
+        ----
+        '''
+
+        with h5py.File(file_path, 'r') as f:
+            phi = f['phi']
+            e_evo = f['e_imag_time_prop']
+            epsilon_evo = f['epsilon_imag_prop']
+
+        return e_evo, epsilon_evo
+
 '''
 TODO: document this class
 '''
