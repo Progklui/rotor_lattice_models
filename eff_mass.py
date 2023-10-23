@@ -77,7 +77,7 @@ params = {"n": 256,
 "n_states": 0,
 "path_to_input_wavefunction": " ",
 "dt": 0.001,
-"tol": 1e-10}
+"tol": 1e-12}
 
 x = (2*np.pi/params["n"])*np.arange(params["n"])
 
@@ -101,7 +101,7 @@ except:
 '''
 sum_tx_ty = 200
 diff_tx_ty = np.array([0]) #np.array([-20,0,20])
-V_0_arr = np.array([1,10,60]) # np.arange(0,200,50)
+V_0_arr = np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
