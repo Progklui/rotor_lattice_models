@@ -100,8 +100,8 @@ except:
 2. Important: here define the symmetries and potential points
 '''
 sum_tx_ty = 200
-diff_tx_ty = np.array([-20,0,20])
-V_0_arr = np.arange(0,200,50)
+diff_tx_ty = np.array([0]) #np.array([-20,0,20])
+V_0_arr = np.array([1,10,60]) # np.arange(0,200,50)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
