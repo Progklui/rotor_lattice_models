@@ -67,10 +67,10 @@ def get_E_arr(V_0_range, folder, check_sys, check_sym):
 
 params = {"n": 256,
 "M": 36,
-"Mx": 16,
+"Mx": 2,
 "Mx_display": 4,
 "converge_new_lattice": "no",
-"My": 16,
+"My": 256,
 "My_display": 4,
 "B": 1.0,
 "tx": 100,
@@ -110,17 +110,17 @@ V_0_range = np.linspace(0,10,21)
 params["B"] = B
 params["init_choice"] = calc_flag
 
-params["tx"] = 100
+params["tx"] = 0
 params["ty"] = 100
-folder = path+'/results/perturbation_theory/tx_100_ty_100/'
+folder = path+'/results/perturbation_theory/tx_0_ty_100/'
 E_vGH1 = quick_pot_scan(params, V_0_range, folder)
 
-params["tx"] = 50
-params["ty"] = 150
-folder = path+'/results/perturbation_theory/tx_50_ty_150/'
-E_vGH2 = quick_pot_scan(params, V_0_range, folder)
-
-params["tx"] = 10
-params["ty"] = 190
-folder = path+'/results/perturbation_theory/tx_10_ty_190/'
-E_vGH3 = quick_pot_scan(params, V_0_range, folder)
+#params["tx"] = 50
+#params["ty"] = 150
+#folder = path+'/results/perturbation_theory/tx_50_ty_150/'
+#E_vGH2 = quick_pot_scan(params, V_0_range, folder)
+#
+#params["tx"] = 10
+#params["ty"] = 190
+#folder = path+'/results/perturbation_theory/tx_10_ty_190/'
+#E_vGH3 = quick_pot_scan(params, V_0_range, folder)
