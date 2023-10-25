@@ -86,7 +86,7 @@ params = {"n": 256,
 "n_states": 0,
 "path_to_input_wavefunction": " ",
 "dt": 0.001,
-"tol": 1e-10}
+"tol": 1e-12}
 
 x = (2*np.pi/params["n"])*np.arange(params["n"])
 
