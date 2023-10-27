@@ -46,7 +46,7 @@ params = {"n": 256,
 "B": 1.0,
 "tx": 100,
 "ty": 100,
-"V_0": 150.0,
+"V_0": 2.0,
 "qx": 0,
 "qy": 0,
 "init_choice": "uniform",
@@ -70,19 +70,23 @@ h5_io_object = h_in.io_hdf5()
 '''
 1. Scan for Ferro-Order
 '''
-Mx_list = 2**(np.arange(2,7))
-My_list = 2**(np.arange(2,7))
+Mx_list = np.array([16,24,32,48,64,80]) #2**(np.arange(2,7))
+My_list = np.array([16,24,32,48,64,80]) #2**(np.arange(2,7))
 
 params["init_choice"] = "uniform"
 folder = path+'/results/numerics_verification/fo/'
+
+params["qx"] = 0
+params["qy"] = 0
+make_size_scan(Mx_list, My_list, params, folder)
 
 params["qx"] = 1
 params["qy"] = 0
 make_size_scan(Mx_list, My_list, params, folder)
 
-params["qx"] = 0
-params["qy"] = 1
-make_size_scan(Mx_list, My_list, params, folder)
+#params["qx"] = 0
+#params["qy"] = 1
+#make_size_scan(Mx_list, My_list, params, folder)
 
 '''
 2. Scan for vertical Ferro-Domain
