@@ -67,10 +67,10 @@ def get_E_arr(V_0_range, folder, check_sys, check_sym):
 
 params = {"n": 256,
 "M": 36,
-"Mx": 32,
+"Mx": 64,
 "Mx_display": 4,
 "converge_new_lattice": "no",
-"My": 32,
+"My": 64,
 "My_display": 4,
 "B": 2.0,
 "tx": 100,
