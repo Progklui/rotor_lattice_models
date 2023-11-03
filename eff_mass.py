@@ -130,7 +130,7 @@ if calc_flag == 'fo':
     #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
     params["init_choice"] = "ferro_domain_vertical_wall"
-    params["Mx"] = 16
+    params["Mx"] = 8
     params["My"] = 256
     folder = path+'/results/eff_mass/fdv/'
 
