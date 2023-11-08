@@ -101,7 +101,7 @@ except:
 '''
 sum_tx_ty = 200
 diff_tx_ty = np.array([0]) #np.array([-20,0,20])
-V_0_arr = np.array([140]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
+V_0_arr = np.array([150,170,190,210]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
@@ -164,7 +164,7 @@ elif calc_flag == 'fdh':
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
-    params["Mx"] = 8
-    params["My"] = 8
+    params["Mx"] = 32
+    params["My"] = 32
     folder = path+'/results/eff_mass/sp/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
