@@ -167,4 +167,15 @@ elif calc_flag == 'sp':
     params["Mx"] = 32
     params["My"] = 32
     folder = path+'/results/eff_mass/sp/'
+
+    params["qx"] = 0
+    params["qy"] = 0
+    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+
+    params["qx"] = 1
+    params["qy"] = 0
+    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+
+    params["qx"] = 0
+    params["qy"] = 1
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
