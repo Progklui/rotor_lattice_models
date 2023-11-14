@@ -113,8 +113,8 @@ print(' ')
 '''
 if calc_flag == 'fo':
     params["init_choice"] = "uniform"
-    params["Mx"] = 32
-    params["My"] = 32
+    params["Mx"] = 64
+    params["My"] = 64
     folder = path+'/results/phase_diagram/fo/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
