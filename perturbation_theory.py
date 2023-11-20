@@ -105,7 +105,7 @@ except:
     print(" "); print("Please provide which initialization phase should be chosen!"); print(' ')
     pass
 
-V_0_range = np.array([1600,2000]) #np.array([0.4,2,4,20,40,100,120]) #np.linspace(0,300,11)
+V_0_range = np.array([1e5,2e5]) #np.array([0.4,2,4,20,40,100,120]) #np.linspace(0,300,11)
 
 params["B"] = B
 params["init_choice"] = calc_flag
