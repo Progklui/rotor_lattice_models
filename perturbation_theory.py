@@ -67,10 +67,10 @@ def get_E_arr(V_0_range, folder, check_sys, check_sym):
 
 params = {"n": 256,
 "M": 4096,
-"Mx": 64,
+"Mx": 8,
 "Mx_display": 4,
 "converge_new_lattice": "no",
-"My": 64,
+"My": 8,
 "My_display": 4,
 "B": 200.0,
 "tx": 100,
@@ -105,14 +105,14 @@ except:
     print(" "); print("Please provide which initialization phase should be chosen!"); print(' ')
     pass
 
-V_0_range = np.array([0.4,2,4,20,40,100,120]) #np.linspace(0,300,11)
+V_0_range = np.array([200,400,600,2000]) #np.array([0.4,2,4,20,40,100,120]) #np.linspace(0,300,11)
 
 params["B"] = B
 params["init_choice"] = calc_flag
 
 params["tx"] = 100
 params["ty"] = 100
-folder = path+'/results/perturbation_theory/tx_100_ty_100/'
+folder = path+'/results/perturbation_theory/tx_100_ty_100/sp/'
 E_vGH1 = quick_pot_scan(params, V_0_range, folder)
 
 #params["tx"] = 50
