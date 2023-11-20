@@ -66,13 +66,13 @@ def get_E_arr(V_0_range, folder, check_sys, check_sym):
     return E_arr
 
 params = {"n": 256,
-"M": 36,
+"M": 4096,
 "Mx": 64,
 "Mx_display": 4,
 "converge_new_lattice": "no",
 "My": 64,
 "My_display": 4,
-"B": 2.0,
+"B": 200.0,
 "tx": 100,
 "ty": 100,
 "V_0": 0.0,
@@ -105,7 +105,7 @@ except:
     print(" "); print("Please provide which initialization phase should be chosen!"); print(' ')
     pass
 
-V_0_range = np.array([0.2,0.4,2,4,20,40,80,100]) #np.linspace(0,300,11)
+V_0_range = np.array([0.4,2,4,20,40,100,120]) #np.linspace(0,300,11)
 
 params["B"] = B
 params["init_choice"] = calc_flag
