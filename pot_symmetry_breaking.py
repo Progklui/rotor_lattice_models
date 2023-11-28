@@ -38,7 +38,7 @@ def make_scan(delta_angle, sum_tx_ty, V_0_arr, params, folder):
             ''' 
             Imaginary Time Propagation
             '''
-            psi, E_evo, epsilon_evo = eom_object.solve_for_fixed_params_imag_time_prop_sym_breaking_int(psi_init)
+            psi, E_evo, epsilon_evo = eom_object.solve_for_fixed_params_imag_time_prop_sym_breaking_int_new(psi_init)
             print('V_0 = ', V_0_arr[i], ', delta phi =', delta_angle[j], ', E =', E_evo[-1])
 
             '''  
@@ -114,8 +114,8 @@ print(' ')
 '''
 if calc_flag == 'fo':
     params["init_choice"] = "uniform"
-    params["Mx"] = 32
-    params["My"] = 32
+    params["Mx"] = 16
+    params["My"] = 16
     folder = path+'/results/phase_diagram_sym_breaking_angle/fo/'
     make_scan(delta_angle, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
