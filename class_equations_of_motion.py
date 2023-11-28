@@ -701,9 +701,81 @@ class eom:
             print("epsilon =", epsilon, "\n")
 
             iter = iter + 1
-
+    
         psi_out = wfn_manip.reshape_three_dim(psi_init)
         return psi_out
+    
+    def solve_for_fixed_params_imag_time_prop_sym_breaking_int_new(self, psi_init):
+        '''
+            Computes: finds ground state variational wave function for the defined parameters
+
+            ----
+            Inputs:
+                psi_init (3-dimensional: (My,Mx,n)): initial wavefunction 
+            ----
+
+            ----
+            Outputs:
+                psi_out (3-dimensional: (My,Mx,n)): output wavefunction
+            ----
+
+            ----
+            Logic:
+                (1) evolve psi_init through time dt -> psi_iter
+                (2) reshape psi_iter and normalize it
+                (3) compute energy and save it - allows checking whether we pass transition states
+                (4) check whether epsilon criterion is converged
+                (5) update psi_init and repeat (1) to (4)
+            ----
+        '''
+
+        wfn_manip = h_wavef.wavefunc_operations(params=self.param_dict)
+        psi_init = wfn_manip.reshape_one_dim(psi_init)
+        psi_0 = psi_init.copy() # for green function 
+
+        # energy objects
+        energy_object = energy.energy(params=self.param_dict)
+        energy_object.V_0 = self.V_0
+
+
+        # lambda expression of right-hand-side of e.o.m
+        func = self.create_integration_function_imag_time_prop_sym_breaking_interaction() 
+
+        iter = 0
+        epsilon = 1 
+        E_converge_list = []
+        epsilon_converge_list = []
+
+        tol = self.param_dict['tol']
+        while epsilon > tol:
+            '''
+            imag time evolution for dt
+            '''
+            sol = solve_ivp(func, [0,self.dt], psi_init, method='RK45', rtol=1e-9, atol=1e-9) # method='RK45','DOP853'
+
+            '''
+            normalize
+            '''
+            psi_iter = sol.y.T[-1]
+            psi_iter = wfn_manip.normalize_wf(psi_iter, shape=(int(self.Mx*self.My),self.n))
+
+            '''
+            compute and save energy and epsilon criterion
+            '''
+            E = energy_object.calc_energy_sym_breaking(psi_iter)
+            E_converge_list.append(E[0].real)
+            epsilon = self.epsilon_criterion_single_rotor(psi_iter, psi_init)
+            epsilon_converge_list.append(epsilon.real)
+            #print('V_0 =', V_0, ', iter step = ' + str(iter+1)+"E =", E[0].real, ", epsilon =", epsilon, "\n")
+
+            '''
+            update psi_init
+            '''
+            psi_init = wfn_manip.reshape_one_dim(psi_iter)
+            iter = iter + 1
+
+        psi_out = wfn_manip.reshape_three_dim(psi_init)
+        return psi_out, E_converge_list, epsilon_converge_list
     
     def solve_for_fixed_params_imag_time_latt_conv_prop(self, psi_init):
         '''
