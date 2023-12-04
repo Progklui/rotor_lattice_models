@@ -101,7 +101,7 @@ except:
 '''
 sum_tx_ty = 200
 diff_tx_ty = np.array([0]) #175, 200 #np.array([0]) # np.array([-200,-175,-150,-125,-100,-75,-50,-25,-1,1,25,50,75,100,125,150,175,200])
-V_0_arr = np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
+V_0_arr = np.array([61,84]) #np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
@@ -113,14 +113,14 @@ print(' ')
 '''
 if calc_flag == 'fo':
     params["init_choice"] = "uniform"
-    params["Mx"] = 32 # 64
-    params["My"] = 32 # 64
+    params["Mx"] = 80 # 32 # 64
+    params["My"] = 80 # 32 # 64
     folder = path+'/results/phase_diagram/fo/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
     params["init_choice"] = "ferro_domain_vertical_wall"
-    params["Mx"] = 4
-    params["My"] = 256 # 32
+    params["Mx"] = 80 #4
+    params["My"] = 80 #256 # 32
     folder = path+'/results/phase_diagram/fdv/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdh':
@@ -131,7 +131,7 @@ elif calc_flag == 'fdh':
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
-    params["Mx"] = 8
-    params["My"] = 8
+    params["Mx"] = 80 # 8
+    params["My"] = 80 # 8
     folder = path+'/results/phase_diagram/sp/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
