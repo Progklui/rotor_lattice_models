@@ -100,8 +100,8 @@ except:
 2. Important: here define the symmetries and potential points
 '''
 sum_tx_ty = 200
-diff_tx_ty = np.array([0]) #np.array([100]) #np.array([-20,0,20])
-V_0_arr = np.array([2,20,4,40]) #np.array([170]) #np.array([2,4,20,50]) #np.array([100]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
+diff_tx_ty = np.array([100]) #np.array([100]) #np.array([-20,0,20])
+V_0_arr = np.array([50,100,150,200,250]) #np.array([170]) #np.array([2,4,20,50]) #np.array([100]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
@@ -130,8 +130,8 @@ if calc_flag == 'fo':
     #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
     params["init_choice"] = "ferro_domain_vertical_wall"
-    params["Mx"] = 8 # 32
-    params["My"] = 256 # 128
+    params["Mx"] = 4 # 8 # 32
+    params["My"] = 128 # 256 # 128
     folder = path+'/results/eff_mass/fdv/'
 
     params["qx"] = 0
@@ -148,7 +148,7 @@ elif calc_flag == 'fdv':
 elif calc_flag == 'fdh':
     params["init_choice"] = "ferro_domain_horizontal_wall"
     params["Mx"] = 128
-    params["My"] = 32
+    params["My"] = 4 #32
     folder = path+'/results/eff_mass/fdh/'
     
     params["qx"] = 0
@@ -159,9 +159,9 @@ elif calc_flag == 'fdh':
     params["qy"] = 0
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 
-    params["qx"] = 0
-    params["qy"] = 1
-    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+    #params["qx"] = 0
+    #params["qy"] = 1
+    #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
     params["Mx"] = 32
