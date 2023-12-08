@@ -148,20 +148,20 @@ elif calc_flag == 'fdv':
 elif calc_flag == 'fdh':
     params["init_choice"] = "ferro_domain_horizontal_wall"
     params["Mx"] = 128
-    params["My"] = 4 #32
+    params["My"] = 32 #4 #32
     folder = path+'/results/eff_mass/fdh/'
     
-    params["qx"] = 0
-    params["qy"] = 0
-    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
-
-    params["qx"] = 1
-    params["qy"] = 0
-    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
-
     #params["qx"] = 0
-    #params["qy"] = 1
+    #params["qy"] = 0
     #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+
+    #params["qx"] = 1
+    #params["qy"] = 0
+    #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+
+    params["qx"] = 0
+    params["qy"] = 1
+    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
     params["Mx"] = 32
