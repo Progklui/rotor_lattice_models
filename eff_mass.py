@@ -101,7 +101,7 @@ except:
 '''
 sum_tx_ty = 200
 diff_tx_ty = np.array([100]) #np.array([100]) #np.array([-20,0,20])
-V_0_arr = np.array([50,150,250]) #np.array([50,100,150,200,250]) #np.array([170]) #np.array([2,4,20,50]) #np.array([100]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
+V_0_arr = np.array([350,700,900]) #np.array([50,100,150,200,250]) #np.array([170]) #np.array([2,4,20,50]) #np.array([100]) #np.array([2,4,20,40,60,80,100]) # np.array([0.02,0.04,4,6,20]) #np.array([0,0.2,0.4,0.6,2,4,6,20,40,60]) # np.arange(0,200,50)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
@@ -168,9 +168,9 @@ elif calc_flag == 'sp':
     params["My"] = 32
     folder = path+'/results/eff_mass/sp/'
 
-    #params["qx"] = 0
-    #params["qy"] = 0
-    #make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
+    params["qx"] = 0
+    params["qy"] = 0
+    make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 
     params["qx"] = 1
     params["qy"] = 0
