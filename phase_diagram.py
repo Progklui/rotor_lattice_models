@@ -101,7 +101,7 @@ except:
 '''
 sum_tx_ty = 200
 diff_tx_ty = np.array([0]) #175, 200 #np.array([0]) # np.array([-200,-175,-150,-125,-100,-75,-50,-25,-1,1,25,50,75,100,125,150,175,200])
-V_0_arr = np.array([55,56,57,58,59,60,61,62,63,64,65]) #np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
+V_0_arr = np.array([80,81,82,83,84,85,86,87,88,89,90]) #np.array([55,56,57,58,59,60,61,62,63,64,65]) #np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
 
 print('V_0 =', V_0_arr, '\n')
 for i in diff_tx_ty:
@@ -131,7 +131,7 @@ elif calc_flag == 'fdh':
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
-    params["Mx"] = 80 # 8
-    params["My"] = 80 # 8
+    params["Mx"] = 32 # 80 # 8
+    params["My"] = 32 # 80 # 8
     folder = path+'/results/phase_diagram/sp/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
