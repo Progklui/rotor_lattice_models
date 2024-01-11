@@ -100,8 +100,8 @@ except:
 2. Important: here define the symmetries and potential points
 '''
 sum_tx_ty = 200
-diff_tx_ty = np.array([20]) #175, 200 #np.array([0]) # np.array([-200,-175,-150,-125,-100,-75,-50,-25,-1,1,25,50,75,100,125,150,175,200])
-V_0_arr = np.array([179,181,183,185,187]) # np.array([163,164,165,166,167,168,169,170,171,172,173]) #  # #np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
+diff_tx_ty = np.array([0]) #175, 200 #np.array([0]) # np.array([-200,-175,-150,-125,-100,-75,-50,-25,-1,1,25,50,75,100,125,150,175,200])
+V_0_arr = np.array([118,119,120,121,122,123,124]) # np.array([163,164,165,166,167,168,169,170,171,172,173]) #  # #np.arange(150,215,5) #np.arange(70,355,5) #np.array([315,320,325,330,335,340,345,350]) #np.arange(0,355,5)
 
 # 109.5, 112 for t1
 
@@ -121,9 +121,9 @@ if calc_flag == 'fo':
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdv':
     params["init_choice"] = "ferro_domain_vertical_wall"
-    params["Mx"] = 80 #4
-    params["My"] = 80 #256 # 32
-    folder = path+'/results/phase_diagram/fdv/'
+    params["Mx"] = 32 #80 #4
+    params["My"] = 32 #80 #256 # 32
+    folder = path+'/results/phase_diagram/couplings_detail/fdv/t1/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdh':
     params["init_choice"] = "ferro_domain_horizontal_wall"
