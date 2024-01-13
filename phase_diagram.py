@@ -135,5 +135,5 @@ elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
     params["Mx"] = 32 # 80 # 8
     params["My"] = 32 # 80 # 8
-    folder = path+'/results/phase_diagram/sp/'
+    folder = path+'/results/phase_diagram/couplings_detail/sp/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
