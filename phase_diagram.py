@@ -123,13 +123,13 @@ elif calc_flag == 'fdv':
     params["init_choice"] = "ferro_domain_vertical_wall"
     params["Mx"] = 32 #80 #4
     params["My"] = 32 #80 #256 # 32
-    folder = path+'/results/phase_diagram/couplings_detail/fdv/t1/'
+    folder = path+'/results/phase_diagram/couplings_detail/fdv/t2/'
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'fdh':
     params["init_choice"] = "ferro_domain_horizontal_wall"
     params["Mx"] = 32 # 32
     params["My"] = 32 # 4
-    folder = path+'/results/phase_diagram/couplings_detail/fdh/t1/' #t1
+    folder = path+'/results/phase_diagram/couplings_detail/fdh/t2/' #t1
     make_scan(diff_tx_ty, sum_tx_ty, V_0_arr, params, folder)
 elif calc_flag == 'sp':
     params["init_choice"] = "small_polaron"
