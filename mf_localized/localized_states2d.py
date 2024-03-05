@@ -1,4 +1,4 @@
-import os, sys, csv
+import os, sys, json
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -12,24 +12,25 @@ import h5py
 ###########################################################################################
 def main():
     io_class = input_output()
-    n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dtau, init_gauss = io_class.get_parameters(0)
+    params = io_class.get_parameters(0)
 
     #wfnpar = WfnParams(10, 10, 256)
     #hamiltpar = HamiltParams(0.5e-2, 0.5, 0.5, 0.3)
+    #n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dtau, init_gauss
 
-    wfnpar = WfnParams(Mx, My, n)
-    hamiltpar = HamiltParams(B, tx, ty, V_0)
+    wfnpar = WfnParams(params["Mx"], params["My"], params["n"])
+    hamiltpar = HamiltParams(params["B"], params["tx"], params["ty"], params["V_0"])
 
     wfn = Wavefunction(wfnpar)
-    wfn.initialize_localized(init_gauss)
+    wfn.initialize_localized(params["init_gauss"])
 
     H = Hamilt(wfnpar, hamiltpar)
 
     epsilon = 1
-    #tol = 4.0e-5
-    #rtol = 1e-9
-    #atol = 1e-9
-    #dtau = 1.0
+    tol = params["tol"] #4.0e-5
+    rtol = params["rtol"] #1e-9
+    atol = params["atol"] #1e-9
+    dtau = params["dtau"] #1.0
 
     energy_old, energy_rot, energy_ele, energy_int = H.calculate_energy(wfn)
     # plot1 = DynamicPlot(H, wfn)
@@ -103,26 +104,36 @@ class input_output:
     def get_parameters(self, arg):
         path_main = os.path.dirname(os.path.abspath(__file__))+"/"
         file_path = self.get_file_path(arg)
-        print('Current settings:'); print(' ')
-        with open(path_main+file_path, newline='') as csvfile:
-            spamreader = csv.reader(csvfile, delimiter=' ')
-            for row in spamreader:
-                identifier = row[0]
-                value = row[1].replace(" ", "")
-                if identifier == "n": n = int(value); print('n    =', n) # grid size of the angle
-                elif identifier == "Mx": Mx = int(value); print('Mx   =', Mx) # number of rotors - in 2D should be a square of an (even) number
-                elif identifier == "My": My = int(value); print('My   =', My) # number of rotors - in 2D should be a square of an (even) number
-                elif identifier == "V_0": V_0 = float(value); print('V_0    =', V_0) # rotational energy of rotors
-                elif identifier == "B": B = float(value); print('B    =', B) # rotational energy of rotors
-                elif identifier == "tx": tx = float(value); print('tx   =', tx) # tunneling along columns
-                elif identifier == "ty": ty = float(value); print('ty   =', ty); print(' ') # tunneling along rows
-                elif identifier == "tol": tol = float(value); print('tol  =', tol) # for convergence - 1e-7 already sufficient for most qualitative behaviour (fast), e.g. 1e-12 runs significantly longer
-                elif identifier == "rtol": rtol = float(value); print('rtol  =', rtol)
-                elif identifier == "atol": atol = float(value); print('atol  =', atol) 
-                elif identifier == "dt": dt = float(value); print('dt   =', dt); print(' ') # time evolution
-                elif identifier == "init_gauss": init_gauss = float(value); print('init =', init_gauss) # spread of gaussian
+        
+        with open(path_main+file_path) as file:
+            data = file.read()
 
-        return n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dt, init_gauss
+        param_dict = json.loads(data)
+
+        for key, value in param_dict.items():
+            print(key,'=',value)
+
+        return param_dict
+    
+        #with open(path_main+file_path, newline='') as csvfile:
+        #    spamreader = csv.reader(csvfile, delimiter=' ')
+        #    for row in spamreader:
+        #        identifier = row[0]
+        #        value = row[1].replace(" ", "")
+        #        if identifier == "n": n = int(value); print('n    =', n) # grid size of the angle
+        #        elif identifier == "Mx": Mx = int(value); print('Mx   =', Mx) # number of rotors - in 2D should be a square of an (even) number
+        #        elif identifier == "My": My = int(value); print('My   =', My) # number of rotors - in 2D should be a square of an (even) number
+        ##        elif identifier == "V_0": V_0 = float(value); print('V_0    =', V_0) # rotational energy of rotors
+        #        elif identifier == "B": B = float(value); print('B    =', B) # rotational energy of rotors
+        #        elif identifier == "tx": tx = float(value); print('tx   =', tx) # tunneling along columns
+        #        elif identifier == "ty": ty = float(value); print('ty   =', ty); print(' ') # tunneling along rows
+        #        elif identifier == "tol": tol = float(value); print('tol  =', tol) # for convergence - 1e-7 already sufficient for most qualitative behaviour (fast), e.g. 1e-12 runs significantly longer
+        #        elif identifier == "rtol": rtol = float(value); print('rtol  =', rtol)
+        #        elif identifier == "atol": atol = float(value); print('atol  =', atol) 
+        #        elif identifier == "dt": dt = float(value); print('dt   =', dt); print(' ') # time evolution
+        #        elif identifier == "init_gauss": init_gauss = float(value); print('init =', init_gauss) # spread of gaussian
+
+        #return n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dt, init_gauss
 
 class Wavefunction:
     '''Class to analyze numpy arrays as wavefunctions'''
