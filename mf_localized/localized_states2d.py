@@ -24,6 +24,7 @@ def main():
     atol = 1e-9
     dtau = 1.0
 
+    energy_old, energy_rot, energy_ele, energy_int = H.calculate_energy(wfn)
     # plot1 = DynamicPlot(H, wfn)
     while epsilon > tol:
         obj = solve_ivp(lambda tau, array: H.apply(array),
@@ -34,14 +35,19 @@ def main():
         wfn_new.normalize()
 
         # convergence condition (here rhs zero)
-        epsilon = np.sum(np.abs(H.apply(wfn_new.wfn)))
+        # epsilon = np.sum(np.abs(H.apply(wfn_new.wfn)))
 
         energy_tot, energy_rot, energy_ele, energy_int = H.calculate_energy(wfn_new)
+
+        # energy condition
+        epsilon = abs(energy_old - energy_tot)
+
         print(f'epsilon:{epsilon}, energy:{energy_tot.real}')
 
         # plot1.update_plots(wfn_new)
 
         wfn = wfn_new
+        energy_old = energy_tot
 
     with h5py.File(f'data_V0_{hamiltpar.V0}_{wfnpar.Mx}x{wfnpar.My}.h5', 'w') as f:
         f.create_dataset('Mx', data=wfnpar.Mx)
