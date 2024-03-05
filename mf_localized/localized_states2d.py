@@ -53,7 +53,7 @@ def main():
         wfn = wfn_new
         energy_old = energy_tot
 
-    with h5py.File(f'data_V0_{hamiltpar.V0}_{wfnpar.Mx}x{wfnpar.My}.h5', 'w') as f:
+    with h5py.File(f'data/data_V0_{hamiltpar.V0}_{wfnpar.Mx}x{wfnpar.My}.h5', 'w') as f:
         f.create_dataset('Mx', data=wfnpar.Mx)
         f.create_dataset('My', data=wfnpar.My)
         f.create_dataset('n', data=wfnpar.n)
