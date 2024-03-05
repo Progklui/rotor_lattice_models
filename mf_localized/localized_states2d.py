@@ -14,12 +14,6 @@ def main():
     io_class = input_output()
     params = io_class.get_parameters(1)
 
-    #wfnpar = WfnParams(10, 10, 256)
-    #hamiltpar = HamiltParams(0.5e-2, 0.5, 0.5, 0.3)
-    #n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dtau, init_gauss
-    print(params)
-    print(float(params["init_gauss"]))
-    
     wfnpar = WfnParams(int(params["Mx"]), int(params["My"]), int(params["n"]))
     hamiltpar = HamiltParams(float(params["B"]), float(params["tx"]), float(params["ty"]), float(params["V_0"]))
 
@@ -116,26 +110,6 @@ class input_output:
             print(key,'=',value)
 
         return param_dict
-    
-        #with open(path_main+file_path, newline='') as csvfile:
-        #    spamreader = csv.reader(csvfile, delimiter=' ')
-        #    for row in spamreader:
-        #        identifier = row[0]
-        #        value = row[1].replace(" ", "")
-        #        if identifier == "n": n = int(value); print('n    =', n) # grid size of the angle
-        #        elif identifier == "Mx": Mx = int(value); print('Mx   =', Mx) # number of rotors - in 2D should be a square of an (even) number
-        #        elif identifier == "My": My = int(value); print('My   =', My) # number of rotors - in 2D should be a square of an (even) number
-        ##        elif identifier == "V_0": V_0 = float(value); print('V_0    =', V_0) # rotational energy of rotors
-        #        elif identifier == "B": B = float(value); print('B    =', B) # rotational energy of rotors
-        #        elif identifier == "tx": tx = float(value); print('tx   =', tx) # tunneling along columns
-        #        elif identifier == "ty": ty = float(value); print('ty   =', ty); print(' ') # tunneling along rows
-        #        elif identifier == "tol": tol = float(value); print('tol  =', tol) # for convergence - 1e-7 already sufficient for most qualitative behaviour (fast), e.g. 1e-12 runs significantly longer
-        #        elif identifier == "rtol": rtol = float(value); print('rtol  =', rtol)
-        #        elif identifier == "atol": atol = float(value); print('atol  =', atol) 
-        #        elif identifier == "dt": dt = float(value); print('dt   =', dt); print(' ') # time evolution
-        #        elif identifier == "init_gauss": init_gauss = float(value); print('init =', init_gauss) # spread of gaussian
-
-        #return n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dt, init_gauss
 
 class Wavefunction:
     '''Class to analyze numpy arrays as wavefunctions'''
