@@ -12,7 +12,7 @@ import h5py
 ###########################################################################################
 def main():
     io_class = input_output()
-    params = io_class.get_parameters(0)
+    params = io_class.get_parameters(1)
 
     #wfnpar = WfnParams(10, 10, 256)
     #hamiltpar = HamiltParams(0.5e-2, 0.5, 0.5, 0.3)
