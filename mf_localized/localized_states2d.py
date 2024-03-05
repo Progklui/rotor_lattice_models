@@ -17,20 +17,22 @@ def main():
     #wfnpar = WfnParams(10, 10, 256)
     #hamiltpar = HamiltParams(0.5e-2, 0.5, 0.5, 0.3)
     #n, Mx, My, V_0, B, tx, ty, tol, rtol, atol, dtau, init_gauss
-
-    wfnpar = WfnParams(params["Mx"], params["My"], params["n"])
-    hamiltpar = HamiltParams(params["B"], params["tx"], params["ty"], params["V_0"])
+    print(params)
+    print(float(params["init_gauss"]))
+    
+    wfnpar = WfnParams(int(params["Mx"]), int(params["My"]), int(params["n"]))
+    hamiltpar = HamiltParams(float(params["B"]), float(params["tx"]), float(params["ty"]), float(params["V_0"]))
 
     wfn = Wavefunction(wfnpar)
-    wfn.initialize_localized(params["init_gauss"])
+    wfn.initialize_localized(float(params["init_gauss"]))
 
     H = Hamilt(wfnpar, hamiltpar)
 
     epsilon = 1
-    tol = params["tol"] #4.0e-5
-    rtol = params["rtol"] #1e-9
-    atol = params["atol"] #1e-9
-    dtau = params["dtau"] #1.0
+    tol = float(params["tol"]) #4.0e-5
+    rtol = float(params["rtol"]) #1e-9
+    atol = float(params["atol"]) #1e-9
+    dtau = float(params["dtau"]) #1.0
 
     energy_old, energy_rot, energy_ele, energy_int = H.calculate_energy(wfn)
     # plot1 = DynamicPlot(H, wfn)
