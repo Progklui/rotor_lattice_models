@@ -73,19 +73,20 @@ class eff_mass:
         return m_eff.real, m_0, E_col.real, E_col_qp.real
 
 class polaron_size:
-    def __init__(self, Mx, My, B, V_0, tx, ty, qx, qy, n, dt, tol):
-        self.Mx  = Mx
-        self.My  = My
-        self.B   = B
-        self.V_0 = V_0 # expects an array here
-        self.tx  = tx
-        self.ty  = ty
-        self.qx  = qx
-        self.qy  = qy
-        self.n   = n
-        self.x   = (2*np.pi/n)*np.arange(n) # make phi (=angle) grid
-        self.dt  = dt
-        self.tol = tol
+    def __init__(self, params):
+        self.param_dict = params
+        self.Mx  = int(params['Mx'])
+        self.My  = int(params['My'])
+        self.M   = int(params['Mx']*params['My'])
+        self.B   = float(params['B'])
+        self.V_0 = 0 if isinstance(params['V_0'], list) == True else float(params['V_0'])
+        self.tx  = float(params['tx'])
+        self.ty  = float(params['ty'])
+        self.qx  = int(params['qx'])
+        self.qy  = int(params['qy'])
+        self.n   = int(params['n'])
+        self.x   = (2*np.pi/self.n)*np.arange(self.n) # make phi (=angle) grid
+        self.dt  = float(params['dt'])
 
     def function_for_solver(self, alpha, distribution): # distribution should be normalized
         dx = self.x[1]-self.x[0]
@@ -128,12 +129,12 @@ class polaron_size:
         return sigma_i_j_V
 
     # takes a (pot_points, My, Mx, n) array and calculates the for a selected potential the polaron size for all rotors
-    def calc_polaron_size(self, psi, V_index, calc_choice):
+    def calc_polaron_size(self, psi, calc_choice):
         sigma = np.zeros((self.My,self.Mx))
         for i in range(self.My):
             for j in range(self.Mx):
-                rotor_density_i_j = ((np.conjugate(psi[:,(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx])\
-                    *psi[:,(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx]))[V_index]
+                rotor_density_i_j = ((np.conjugate(psi[(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx])\
+                    *psi[(i+int(self.My/2))%self.My,(j+int(self.Mx/2))%self.Mx]))
 
                 sigma[i,j] = self.polaron_size(rotor_density_i_j, calc_choice).real
 
