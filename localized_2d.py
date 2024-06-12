@@ -383,6 +383,70 @@ class Hamilt:
         E, V = diagonalize_ordered(H, B)
         return E, V
 
+    def calculate_Tx_Ty_loc_basis(self, wfn):
+        B, tx, ty, V0, eta = self.hamilt_params.read()
+        Mx, My, n, phi, k2 = self.wfn_params.read()
+
+        psi_rot_d2 = wfn.rotwfn_d2dx()
+        psi_rot_va = np.einsum('k,kij->kij', np.cos(phi - eta[0]), wfn.rotwfn)
+        psi_rot_vb = np.einsum('k,kij->kij', np.cos(phi - eta[1]), wfn.rotwfn)
+        psi_rot_vc = np.einsum('k,kij->kij', np.cos(phi - eta[2]), wfn.rotwfn)
+        psi_rot_vd = np.einsum('k,kij->kij', np.cos(phi - eta[3]), wfn.rotwfn)
+
+        get_matrix = lambda fun_: np.array([[fun_(m, n) for n in range(My)] for m in range(Mx)])
+        elewfn_shift_mat = get_matrix(wfn.elewfn_shift)
+        rotwfn_shift_mat = get_matrix(wfn.rotwfn_shift)
+
+        Oe = np.einsum('mnij,ij->mnij', np.conj(elewfn_shift_mat), wfn.elewfn)
+        OE = np.sum(Oe, axis=(2, 3))
+
+        Or = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), wfn.rotwfn)
+        OR = np.prod(Or, axis=(2, 3))
+        Orij = np.einsum('mn,mnjl->mnjl', OR, 1/Or)
+
+        Od2 = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), psi_rot_d2)
+        Ova = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), psi_rot_va)
+        Ovb = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), psi_rot_vb)
+        Ovc = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), psi_rot_vc)
+        Ovd = np.einsum('mnkij,kij->mnij', np.conj(rotwfn_shift_mat), psi_rot_vd)
+
+        Tx = (np.roll(OE, 1, axis=0) + np.roll(OE, -1, axis=0)) * OR
+        Ty = (np.roll(OE, 1, axis=1) + np.roll(OE, -1, axis=1)) * OR
+
+        Hr = -B * OE * np.einsum('mnjl,mnjl->mn', Orij, Od2)
+
+        eff_pot = np.roll(Orij * Ova, -1, axis=2) + \
+            np.roll(Orij* Ovb, (-1,-1), axis=(2,3)) + \
+            Orij * Ovc + \
+            np.roll(Orij * Ovd, -1, axis=3)
+
+        Hi = V0 * np.einsum('mnjl,mnjl->mn', Oe, eff_pot)
+        
+        B = OR * OE
+        return Tx, Ty, Hr, Hi, B
+        
+    def tunneling_Tx_Ty_matrix(self, wfn):
+        B, tx, ty, V0, eta = self.hamilt_params.read()
+        Mx, My, n, phi, k2 = self.wfn_params.read()
+
+        Txm, Tym, Hrm, Him, Bm = self.calculate_Tx_Ty_loc_basis(wfn)
+
+        indx = np.repeat(np.arange(Mx), (My,))
+        indy = np.tile(np.arange(My), (Mx,))
+        indxf = lambda m_: np.tile(np.roll(np.arange(Mx), m_, axis=0), (My,))
+        indyf = lambda m_: np.repeat(np.roll(np.arange(My), m_, axis=0), Mx)
+
+        indm = np.array([indxf(m) for m in indy])
+        indn = np.array([indyf(m) for m in indx])
+
+        Tx = Txm[indm, indn]
+        Ty = Tym[indm, indn]
+        Hr = Hrm[indm, indn]
+        Hi = Him[indm, indn]
+        B = Bm[indm, indn]
+
+        return Tx, Ty, Hr, Hi, B
+        
 ###########################################################################################
 ############## TOOLS ######################################################################
 ###########################################################################################
